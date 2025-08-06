@@ -133,15 +133,18 @@ def _get_agent_content(agent: tuple, entry: Dict[str, Any]) -> str:
         str: Processed content from LLM
     """
     agent_name, agent_config = agent
-    prompt = agent_config['prompt']
+    title = entry['title']
     content_markdown = to_markdown(entry['content'])
-    
-    if '${content}' in prompt:
-        system_prompt = "You are a helpful assistant."
-        user_prompt = prompt.replace('${content}', content_markdown)
+
+    prompt_template = agent_config['prompt']
+    prompt = prompt_template.replace('${title}', title).replace('${content}', content_markdown)
+
+    if '${content}' in prompt_template:
+        system_prompt = ""
+        user_prompt = prompt
     else:
         system_prompt = prompt
-        user_prompt = content_markdown
+        user_prompt = f"[Title]\n{title}\n\n[Content]\n{content_markdown}"
 
     log_entry_debug(entry, agent_name=agent_name, message=f"LLM request sent: system_prompt: {system_prompt}; user_prompt: {user_prompt}")
 
