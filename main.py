@@ -1,51 +1,41 @@
-import concurrent.futures
-import time
-import traceback
-
-import miniflux
+import threading
 import schedule
+import signal
 
-from common import Config, logger
+from common import config, logger
 from myapp import app
-from core import fetch_unread_entries, generate_daily_news
+from core import handle_unread_entries, generate_daily_news, init_news_feed, miniflux_client
 
-config = Config()
-miniflux_client = miniflux.Client(config.miniflux_base_url, api_key=config.miniflux_api_key)
-while True:
-    try:
-        alive = miniflux_client.me()
-        logger.info('Successfully connected to Miniflux!')
-        break
-    except Exception as e:
-        logger.error('Cannot connect to Miniflux: %s' % e)
-        logger.error(e.args[0].content)
-        time.sleep(3)
+shutdown_event = threading.Event()
 
 def my_schedule():
     interval = 15 if config.miniflux_webhook_secret else 1
-    schedule.every(interval).minutes.do(fetch_unread_entries, config, miniflux_client)
+    schedule.every(interval).minutes.do(handle_unread_entries, miniflux_client)
     schedule.run_all()
 
     if config.ai_news_schedule:
-        feeds = miniflux_client.get_feeds()
-        if not any('Newsᴬᴵ for you' in item['title'] for item in feeds):
-            try:
-                miniflux_client.create_feed(category_id=1, feed_url=config.ai_news_url + '/rss/ai-news')
-                logger.info('Successfully created the ai_news feed in Miniflux!')
-            except Exception as e:
-                logger.error('Failed to create the ai_news feed in Miniflux: %s' % e)
+        init_news_feed(miniflux_client)
         for ai_schedule in config.ai_news_schedule:
             schedule.every().day.at(ai_schedule).do(generate_daily_news, miniflux_client)
 
-    while True:
+    while not shutdown_event.is_set():
         schedule.run_pending()
-        time.sleep(1)
+        shutdown_event.wait(1)
 
 def my_flask():
-    logger.info('Starting API')
     app.run(host='0.0.0.0', port=80)
 
 if __name__ == '__main__':
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(my_flask)
-        executor.submit(my_schedule)
+    logger.info("Application starting...")
+
+    signal.signal(signal.SIGINT, lambda s, f: shutdown_event.set())
+    signal.signal(signal.SIGTERM, lambda s, f: shutdown_event.set())
+
+    flask_thread = threading.Thread(target=my_flask, daemon=True)
+    schedule_thread = threading.Thread(target=my_schedule, daemon=False)
+    
+    flask_thread.start()
+    schedule_thread.start()
+    schedule_thread.join()
+
+    logger.info("Application stopped...")
