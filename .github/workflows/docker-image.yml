@@ -38,8 +38,8 @@ jobs:
             ghcr.io/${{ github.repository }}
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=latest,enable=${{ github.event.release.latest }}
-            type=raw,value=pre,enable=${{ github.event.release.prerelease }}
+            type=raw,value=latest,enable=${{ github.event.release.latest || false}}
+            type=raw,value=pre,enable=${{ github.event.release.prerelease || false}}
 
       - name: Build and push Docker image
         id: push
