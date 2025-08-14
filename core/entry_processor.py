@@ -144,7 +144,7 @@ def _get_agent_content(agent: tuple, entry: Dict[str, Any]) -> str:
         user_prompt = prompt
     else:
         system_prompt = prompt
-        user_prompt = f"[Title]\n{title}\n\n[Content]\n{content_markdown}"
+        user_prompt = f"Process only the [Content]. The [Title] is for context.\n\n[Title]\n{title}\n\n[Content]\n{content_markdown}"
 
     log_entry_debug(entry, agent_name=agent_name, message=f"LLM request sent: system_prompt: {system_prompt}; user_prompt: {user_prompt}")
 
