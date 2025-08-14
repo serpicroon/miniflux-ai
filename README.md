@@ -52,7 +52,7 @@ The repository includes a template configuration file: `config.sample.yml`. Modi
 > If using a webhook, enter the URL in Settings > Integrations > Webhook > Webhook URL.
 > 
 > If deploying in a container alongside Miniflux, use the following URL:
-> http://miniflux_ai/api/miniflux-ai.
+> http://miniflux-ai/api/miniflux-ai.
 
 - **Miniflux**: Base URL and API key.
 - **LLM**: Model settings, API key, and endpoint.Add timeout, max_workers parameters due to multithreading
@@ -68,8 +68,8 @@ The project includes a `docker-compose.yml` file for easy deployment:
 
 ```yaml
 services:
-    miniflux_ai:
-        container_name: miniflux_ai
+    miniflux-ai:
+        container_name: miniflux-ai
         image: ghcr.io/qetesh/miniflux-ai:latest
         restart: always
         environment:

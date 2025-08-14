@@ -27,9 +27,8 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # miniflux-ai
-  miniflux_ai:
-    container_name: miniflux_ai
+  miniflux-ai:
+    container_name: miniflux-ai
     image: ghcr.io/qetesh/miniflux-ai:latest
     restart: unless-stopped
     environment:

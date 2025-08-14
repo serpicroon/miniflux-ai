@@ -21,7 +21,7 @@ llm:
 
 ai_news:
   # for docker compose environment, use docker container_name
-  url: http://miniflux_ai
+  url: http://miniflux-ai
   schedule:
     - "07:30"
     - "18:00"

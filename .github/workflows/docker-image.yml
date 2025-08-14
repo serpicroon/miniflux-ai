@@ -1,4 +1,4 @@
-name: miniflux_ai docker image
+name: miniflux-ai docker image
 
 on:
   release:
