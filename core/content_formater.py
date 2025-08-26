@@ -8,6 +8,8 @@ from common import config
 MARKER = '<div data-ai-agent="{}" style="display: none;"></div>'
 MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
 
+_MISTUNE_INSTANCE = mistune.create_markdown(hard_wrap=True)
+
 
 def to_markdown(content: str) -> str:
     """
@@ -32,7 +34,7 @@ def to_html(content: str) -> str:
     Returns:
         HTML formatted content
     """
-    return mistune.html(content)
+    return _MISTUNE_INSTANCE(content)
 
 
 def parse_entry_content(content: str) -> Tuple[str, Dict[str, str]]:
