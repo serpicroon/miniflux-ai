@@ -2,7 +2,7 @@ import time
 import traceback
 from datetime import datetime
 
-import markdown
+from core.content_formater import to_html
 from feedgen.feed import FeedGenerator
 from flask import Response
 
@@ -127,6 +127,6 @@ def _add_news_entry(feed_generator: FeedGenerator, news_content: str) -> None:
     news_entry.id(f'{FEED_LINK}/{timestamp}')
     news_entry.link(href=f'{FEED_LINK}/{timestamp}')
     news_entry.title(f'{time_period} {FEED_TITLE} - {date_str}')
-    news_entry.description(markdown.markdown(news_content))
+    news_entry.description(to_html(news_content))
     
     logger.info(f'Successfully added {time_period.lower()} news entry for {date_str}')

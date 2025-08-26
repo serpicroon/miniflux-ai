@@ -1,5 +1,5 @@
 import re
-import markdown
+import mistune
 from typing import Dict, Tuple
 from markdownify import markdownify as md
 
@@ -32,7 +32,7 @@ def to_html(content: str) -> str:
     Returns:
         HTML formatted content
     """
-    return markdown.markdown(content)
+    return mistune.html(content)
 
 
 def parse_entry_content(content: str) -> Tuple[str, Dict[str, str]]:
