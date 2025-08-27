@@ -8,7 +8,11 @@ from common import config
 MARKER = '<div data-ai-agent="{}" style="display: none;"></div>'
 MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
 
-_MISTUNE_INSTANCE = mistune.create_markdown(hard_wrap=True)
+_MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugins=[
+    'strikethrough',
+    'table',
+    'footnotes',
+])
 
 
 def to_markdown(content: str) -> str:
