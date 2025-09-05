@@ -1,5 +1,5 @@
 import re
-import markdown
+import mistune
 from typing import Dict, Tuple
 from markdownify import markdownify as md
 
@@ -7,6 +7,12 @@ from common import config
 
 MARKER = '<div data-ai-agent="{}" style="display: none;"></div>'
 MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
+
+_MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugins=[
+    'strikethrough',
+    'table',
+    'footnotes',
+])
 
 
 def to_markdown(content: str) -> str:
@@ -32,7 +38,7 @@ def to_html(content: str) -> str:
     Returns:
         HTML formatted content
     """
-    return markdown.markdown(content)
+    return _MISTUNE_INSTANCE(content)
 
 
 def parse_entry_content(content: str) -> Tuple[str, Dict[str, str]]:

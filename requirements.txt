@@ -1,7 +1,7 @@
 miniflux
 openai
 markdownify
-markdown
+mistune
 PyYAML
 flask
 feedgen
