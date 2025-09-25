@@ -16,8 +16,7 @@ def my_schedule():
             schedule.every().day.at(digest_schedule).do(generate_daily_digest, miniflux_client)
 
     interval = 15 if config.miniflux_webhook_secret else 1
-    schedule.every(interval).minutes.do(handle_unread_entries, miniflux_client)
-    schedule.run_all()
+    schedule.every(interval).minutes.do(handle_unread_entries, miniflux_client).run()
 
     while not shutdown_event.is_set():
         schedule.run_pending()
