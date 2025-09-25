@@ -2,11 +2,11 @@ import time
 import traceback
 from datetime import datetime
 
-import markdown
 from feedgen.feed import FeedGenerator
 from flask import Response
 
 from common import logger, DIGEST_FILE
+from core.content_formater import to_html
 from myapp import app
 
 FEED_TITLE = 'Digestᴬᴵ for you'
@@ -134,6 +134,6 @@ def _add_digest_entry(feed_generator: FeedGenerator, digest_content: str) -> Non
     digest_entry.id(f'{FEED_LINK}/{timestamp}')
     digest_entry.link(href=f'{FEED_LINK}/{timestamp}')
     digest_entry.title(f'{time_period} {FEED_TITLE} - {date_str}')
-    digest_entry.description(markdown.markdown(digest_content))
+    digest_entry.description(to_html(digest_content))
     
     logger.info(f'Successfully added {time_period.lower()} digest entry for {date_str}')

@@ -1,7 +1,6 @@
 import json
 import time
 import traceback
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from common.logger import logger
