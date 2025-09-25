@@ -21,6 +21,7 @@ class Config:
         self.llm_max_workers = self._get_config_value('llm', 'max_workers', 4)
         self.llm_RPM = self._get_config_value('llm', 'RPM', 1000)
 
+        self.digest_name = self._get_config_value('digest', 'name', "Minifluxᴬᴵ Digest for you")
         self.digest_url = self._get_config_value('digest', 'url', None)
         self.digest_schedule = self._get_config_value('digest', 'schedule', None)
         self.digest_prompts = self._get_config_value('digest', 'prompts', None)

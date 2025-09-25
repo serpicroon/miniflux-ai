@@ -5,16 +5,13 @@ from datetime import datetime
 from feedgen.feed import FeedGenerator
 from flask import Response
 
-from common import logger, DIGEST_FILE
+from common import logger, DIGEST_FILE, config
 from core.content_formater import to_html
 from myapp import app
 
-FEED_TITLE = 'Digestᴬᴵ for you'
-FEED_LINK = 'https://ai-digest.miniflux'
 
-
-@app.route('/rss/ai-digest', methods=['GET'])
-def miniflux_ai_digest() -> Response:
+@app.route('/rss/digest', methods=['GET'])
+def rss_ai_digest() -> Response:
     """
     AI Digest RSS Feed endpoint
     
@@ -86,11 +83,11 @@ def _create_rss_feed_generator() -> FeedGenerator:
         FeedGenerator: Configured feed generator with base settings
     """
     feed_generator = FeedGenerator()
-    feed_generator.id(FEED_LINK)
-    feed_generator.title(FEED_TITLE)
-    feed_generator.subtitle('Powered by miniflux-ai')
-    feed_generator.author({'name': 'miniflux-ai'})
-    feed_generator.link(href=FEED_LINK, rel='self')
+    feed_generator.id(config.digest_url)
+    feed_generator.title(config.digest_name)
+    feed_generator.author({'name': 'Minifluxᴬᴵ'})
+    feed_generator.subtitle('Powered by Minifluxᴬᴵ')
+    feed_generator.link(href=config.digest_url, rel='self')
     return feed_generator
 
 
@@ -102,10 +99,10 @@ def _add_welcome_entry(feed_generator: FeedGenerator) -> None:
         feed_generator: Feed generator to add entry to
     """
     welcome_entry = feed_generator.add_entry()
-    welcome_entry.id(FEED_LINK)
-    welcome_entry.link(href=FEED_LINK)
-    welcome_entry.title('Welcome to Digestᴬᴵ')
-    welcome_entry.description('Welcome to Digestᴬᴵ')
+    welcome_entry.id(config.digest_url)
+    welcome_entry.link(href=config.digest_url)
+    welcome_entry.author({'name': 'Minifluxᴬᴵ'})
+    welcome_entry.title('Welcome to Minifluxᴬᴵ Digest')
 
 
 def _add_digest_entry(feed_generator: FeedGenerator, digest_content: str) -> None:
@@ -120,20 +117,35 @@ def _add_digest_entry(feed_generator: FeedGenerator, digest_content: str) -> Non
     
     timestamp = time.strftime('%Y-%m-%d-%H-%M')
     date_str = time.strftime('%Y-%m-%d')
-    current_hour = datetime.today().hour
-    if current_hour < 12:
-        time_period = 'Morning'
-    elif current_hour < 14:
-        time_period = 'Noon'
-    elif current_hour < 18:
-        time_period = 'Afternoon'
-    else:
-        time_period = 'Nightly'
+    time_period = _get_digest_time_period(datetime.today().hour)
     
     digest_entry = feed_generator.add_entry()
-    digest_entry.id(f'{FEED_LINK}/{timestamp}')
-    digest_entry.link(href=f'{FEED_LINK}/{timestamp}')
-    digest_entry.title(f'{time_period} {FEED_TITLE} - {date_str}')
+    digest_entry.id(f'{config.digest_url}/{timestamp}')
+    digest_entry.author({'name': 'Minifluxᴬᴵ'})
+    digest_entry.title(f'{time_period} Digest for you - {date_str}')
     digest_entry.description(to_html(digest_content))
     
     logger.info(f'Successfully added {time_period.lower()} digest entry for {date_str}')
+
+def _get_digest_time_period(hour: int) -> str:
+    """
+    Get the time period for the digest entry
+    
+    Args:
+        hour: The hour of the day
+        
+    Returns:
+        The time period
+    """
+    if not 0 <= hour <= 23:
+        raise ValueError("hour must be in 0..23")
+    if 5 <= hour < 12:
+        return "Morning"
+    elif hour == 12:
+        return "Midday"
+    elif 13 <= hour < 18:
+        return "Afternoon"
+    elif 18 <= hour < 22:
+        return "Evening"
+    else:
+        return "Nightly"

@@ -8,8 +8,6 @@ from common import config, SUMMARY_FILE_LOCK, SUMMARY_FILE, DIGEST_FILE
 from miniflux import ClientError
 from core.llm_client import get_completion
 
-FEED_NAME = 'Digestᴬᴵ for you'
-
 
 def init_digest_feed(miniflux_client) -> None:
     """
@@ -42,7 +40,7 @@ def _create_digest_feed(miniflux_client) -> None:
         miniflux_client: Miniflux client instance
     """
     try:
-        feed_url = f"{config.digest_url}/rss/ai-digest"
+        feed_url = f"{config.digest_url}/rss/digest"
         logger.debug(f'Creating AI digest feed with URL: {feed_url}')
         
         miniflux_client.create_feed(category_id=1, feed_url=feed_url)
@@ -196,6 +194,6 @@ def _find_digest_feed_id(feeds: List[Dict[str, Any]]) -> Optional[int]:
         Feed ID if found, None otherwise
     """
     for feed in feeds:
-        if FEED_NAME in feed.get('title', ''):
+        if config.digest_name in feed.get('title', ''):
             return feed['id']
     return None
