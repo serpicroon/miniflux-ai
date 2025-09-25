@@ -12,4 +12,4 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 
-from myapp import webhook, ai_news
+from myapp import webhook, digest

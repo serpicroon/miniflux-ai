@@ -21,9 +21,9 @@ class Config:
         self.llm_max_workers = self._get_config_value('llm', 'max_workers', 4)
         self.llm_RPM = self._get_config_value('llm', 'RPM', 1000)
 
-        self.ai_news_url = self._get_config_value('ai_news', 'url', None)
-        self.ai_news_schedule = self._get_config_value('ai_news', 'schedule', None)
-        self.ai_news_prompts = self._get_config_value('ai_news', 'prompts', None)
+        self.digest_url = self._get_config_value('digest', 'url', None)
+        self.digest_schedule = self._get_config_value('digest', 'schedule', None)
+        self.digest_prompts = self._get_config_value('digest', 'prompts', None)
 
         self.agents = self.c.get('agents', {})
         

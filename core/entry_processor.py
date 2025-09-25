@@ -106,8 +106,8 @@ def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> str:
         agent_content = _get_agent_content(agent, entry)
         log_entry_info(entry, agent_name=agent_name, message=f'Result: {agent_content}', include_title=True)
 
-        if config.ai_news_schedule and agent_name == 'summary':
-            # save summary to file for ai_news feature
+        if config.digest_schedule and agent_name == 'summary':
+            # save summary to file for AI digest feature
             _save_summary_entry(entry, agent_content)
 
         formatted_result = _format_agent_result(agent_config, agent_content)
@@ -174,23 +174,23 @@ def _format_agent_result(agent_config: Dict[str, Any], agent_content: str) -> st
         return html_content
 
 
-def _save_summary_entry(entry: Dict[str, Any], summary_content: str) -> None:
+def _save_summary_entry(entry: Dict[str, Any], summary: str) -> None:
     """
-    Save summary entry to JSONL file for ai_summary feature
+    Save summary entry to JSONL file for digest feature
     Each line contains one JSON object for better performance
     
     Args:
         entry: Original entry dictionary
-        summary_content: Processed summary content
+        summary: Processed summary content
     """
-    if not summary_content:
+    if not summary:
         return
     
     entry_data = {
         'datetime': entry['created_at'],
         'category': entry['feed']['category']['title'],
         'title': entry['title'],
-        'content': summary_content
+        'content': summary
     }
     
     with SUMMARY_FILE_LOCK:

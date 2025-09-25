@@ -162,5 +162,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-ai_news.data
-ai_summaries.data
+data/

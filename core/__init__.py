@@ -1,4 +1,4 @@
 from .entry_handler import handle_unread_entries, process_entries_concurrently
 from .entry_processor import process_entry
-from .news_generator import generate_daily_news, init_news_feed
+from .digest_generator import generate_daily_digest, init_digest_feed
 from .miniflux_client import miniflux_client
