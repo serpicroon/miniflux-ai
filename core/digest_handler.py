@@ -10,6 +10,8 @@ from common import logger, config
 from core.digest_generator import generate_digest_content, load_digest_content
 from core.content_formater import to_html
 
+FEED_URL = f"{config.digest_url}/rss/digest"
+
 
 def init_digest_feed(miniflux_client) -> None:
     """
@@ -128,14 +130,11 @@ def _get_digest_time_period(hour: int) -> str:
 
 
 def _create_digest_feed(miniflux_client) -> None:
-    """Create AI digest feed in Miniflux"""
+    """Create digest feed in Miniflux"""
     try:
-        feed_url = f"{config.digest_url}/rss/digest"
-        logger.debug(f'Creating AI digest feed with URL: {feed_url}')
-        
-        miniflux_client.create_feed(category_id=1, feed_url=feed_url)
-        logger.info(f'Successfully created AI digest feed in Miniflux: {feed_url}')
-
+        logger.debug(f'Creating AI digest feed with URL: {FEED_URL}')
+        miniflux_client.create_feed(category_id=1, feed_url=FEED_URL)
+        logger.info(f'Successfully created AI digest feed in Miniflux: {FEED_URL}')
     except ClientError as e:
         logger.error(f'Failed to create AI digest feed in Miniflux: {e.get_error_reason()}')
         raise
@@ -156,7 +155,9 @@ def _refresh_digest_feed(miniflux_client) -> None:
             logger.info('Successfully refreshed AI digest feed in Miniflux')
         else:
             logger.warning('AI digest feed not found in Miniflux')
-            
+    except ClientError as e:
+        logger.error(f'Failed to refresh AI digest feed in Miniflux: {e.get_error_reason()}')
+        raise
     except Exception as e:
         logger.error(f'Failed to refresh AI digest feed: {e}')
         raise
@@ -165,6 +166,6 @@ def _refresh_digest_feed(miniflux_client) -> None:
 def _find_digest_feed_id(feeds: List[Dict[str, Any]]) -> Optional[int]:
     """Find the AI digest feed ID from the list of feeds"""
     for feed in feeds:
-        if config.digest_name in feed.get('title', ''):
+        if FEED_URL == feed.get('feed_url', ''):
             return feed['id']
     return None
