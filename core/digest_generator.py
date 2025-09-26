@@ -3,83 +3,76 @@ import time
 import traceback
 from typing import Any, Dict, List, Optional
 
-from common.logger import logger
+from common.logger import logger, log_entry_error
 from common import config, SUMMARY_FILE_LOCK, SUMMARY_FILE, DIGEST_FILE
-from miniflux import ClientError
 from core.llm_client import get_completion
 
 
-def init_digest_feed(miniflux_client) -> None:
+def generate_digest_content() -> str | None:
     """
-    Initialize AI digest feed if it doesn't exist in Miniflux
-    
-    Args:
-        miniflux_client: Miniflux client instance
-    """
-    try:
-        logger.debug('Checking if AI digest feed exists')
+    Generate digest content using LLM based on summaries
         
-        feeds = miniflux_client.get_feeds()
-        digest_feed_id = _find_digest_feed_id(feeds)
-        
-        if digest_feed_id is None:
-            _create_digest_feed(miniflux_client)
-        else:
-            logger.debug(f'AI digest feed already exists with ID: {digest_feed_id}')
-            
-    except Exception as e:
-        logger.error(f'Failed to initialize AI digest feed: {e}')
-        raise
-
-
-def _create_digest_feed(miniflux_client) -> None:
+    Returns:
+        Generated digest content string
     """
-    Create AI digest feed in Miniflux
-    
-    Args:
-        miniflux_client: Miniflux client instance
-    """
-    try:
-        feed_url = f"{config.digest_url}/rss/digest"
-        logger.debug(f'Creating AI digest feed with URL: {feed_url}')
-        
-        miniflux_client.create_feed(category_id=1, feed_url=feed_url)
-        logger.info(f'Successfully created AI digest feed in Miniflux: {feed_url}')
-
-    except ClientError as e:
-        logger.error(f'Failed to create AI digest feed in Miniflux: {e.get_error_reason()}')
-        raise
-    except Exception as e:
-        logger.error(f'Failed to create AI digest feed in Miniflux: {e}')
-        raise
-
-
-def generate_daily_digest(miniflux_client) -> None:
-    """
-    Generate daily digest from AI summaries and refresh corresponding feed
-    
-    Args:
-        miniflux_client: Miniflux client instance for feed refresh
-    """
-    logger.info('Starting daily digest generation')
-    
     try:
         summaries = _load_summaries()
         if not summaries:
             logger.info('No summaries found, skipping digest generation')
-            return
+            return None
             
-        logger.info(f'Loaded {len(summaries)} summaries for processing')
+        logger.info(f'Loaded {len(summaries)} summaries for digest generation')
         
-        digest_content = _generate_digest_content(summaries)
-        _save_digest_content(digest_content)
-        _refresh_ai_digest_feed(miniflux_client)
+        contents = '\n'.join(f'[{summary["id"]}] {summary["content"]}' for summary in summaries)
         
-        logger.info('Daily digest generation completed successfully')
+        # Generate greeting with current timestamp
+        current_time = time.strftime('%B %d, %Y at %I:%M %p')
+        logger.debug(f'Generating greeting for time: {current_time}')
+        greeting = get_completion(config.digest_prompts['greeting'], current_time)
+        
+        logger.debug('Generating digest content from summaries')
+        summary_digest = get_completion(config.digest_prompts['summary'], contents)
+        
+        # Combine all parts into final digest content
+        response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
+
+        _save_digest_content(response_content)
+        return response_content
         
     except Exception as e:
-        logger.error(f'Failed to generate daily digest: {e}')
-        logger.error(traceback.format_exc())
+        logger.error(f'Failed to generate digest content: {e}')
+        raise
+
+
+def save_summary(entry: Dict[str, Any], summary_content: str) -> None:
+    """
+    Save the summary entry to a temporary file for digest feature
+    Each line contains one JSON object for better performance
+    
+    Args:
+        entry: Original entry dictionary
+        summary_content: Processed summary content
+    """
+    if not summary_content:
+        return
+    
+    entry_data = {
+        'id': entry['id'],
+        'title': entry['title'],
+        'url': entry['url'],
+        'datetime': entry['created_at'],
+        'content': summary_content
+    }
+    
+    with SUMMARY_FILE_LOCK:
+        try:
+            with open(SUMMARY_FILE, 'a', encoding='utf-8') as file:
+                json_line = json.dumps(entry_data, ensure_ascii=False)
+                file.write(json_line + '\n')
+                
+        except Exception as e:
+            log_entry_error(entry, message=f"Failed to save summary: {e}")
+            logger.error(traceback.format_exc())
 
 
 def _load_summaries() -> List[Dict[str, Any]]:
@@ -113,35 +106,31 @@ def _load_summaries() -> List[Dict[str, Any]]:
             SUMMARY_FILE.write_text('', encoding='utf-8')
 
 
-def _generate_digest_content(summaries: List[Dict[str, Any]]) -> str:
+def load_digest_content() -> str:
     """
-    Generate digest content using LLM based on summaries
+    Load digest content from data file and clear it
     
-    Args:
-        summaries: List of summary dictionaries
-        
     Returns:
-        Generated digest content string
+        str: Digest content if available, empty string if file not found or empty
+        
+    Raises:
+        Exception: If file operations fail
     """
     try:
-        contents = '\n'.join([summary['content'] for summary in summaries])
+        logger.debug(f'Loading digest content from {DIGEST_FILE}')
         
-        # Generate greeting with current timestamp
-        current_time = time.strftime('%B %d, %Y at %I:%M %p')
-        logger.debug(f'Generating greeting for time: {current_time}')
-        greeting = get_completion(config.digest_prompts['greeting'], current_time)
-        
-        logger.debug('Generating digest content from summaries')
-        summary_digest = get_completion(config.digest_prompts['summary'], contents)
-        
-        # Combine all parts into final digest content
-        response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
-        
-        return response_content
-        
+        if not DIGEST_FILE.exists():
+            logger.warning('Digest content file does not exist')
+            return ''
+
+        content = DIGEST_FILE.read_text('utf-8')
+
+        return content if content else ''
     except Exception as e:
-        logger.error(f'Failed to generate digest content: {e}')
+        logger.error(f'Failed to load digest content: {e}')
         raise
+    finally:
+        DIGEST_FILE.write_text('', encoding='utf-8')
 
 
 def _save_digest_content(content: str) -> None:
@@ -159,41 +148,3 @@ def _save_digest_content(content: str) -> None:
         raise
 
 
-def _refresh_ai_digest_feed(miniflux_client) -> None:
-    """
-    Find and refresh the AI digest feed in Miniflux
-    
-    Args:
-        miniflux_client: Miniflux client instance
-    """
-    try:
-        feeds = miniflux_client.get_feeds()
-        digest_feed_id = _find_digest_feed_id(feeds)
-        
-        if digest_feed_id:
-            logger.debug(f'Found AI digest feed with ID: {digest_feed_id}')
-            miniflux_client.refresh_feed(digest_feed_id)
-            logger.info('Successfully refreshed AI digest feed in Miniflux')
-        else:
-            # Feed should have been initialized at startup; avoid recreating to prevent potential issues
-            logger.warning('AI digest feed not found in Miniflux')
-            
-    except Exception as e:
-        logger.error(f'Failed to refresh AI digest feed: {e}')
-        raise
-
-
-def _find_digest_feed_id(feeds: List[Dict[str, Any]]) -> Optional[int]:
-    """
-    Find the AI digest feed ID from the list of feeds
-    
-    Args:
-        feeds: List of feed dictionaries from Miniflux
-        
-    Returns:
-        Feed ID if found, None otherwise
-    """
-    for feed in feeds:
-        if config.digest_name in feed.get('title', ''):
-            return feed['id']
-    return None

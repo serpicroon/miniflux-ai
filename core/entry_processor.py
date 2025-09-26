@@ -1,9 +1,9 @@
-import json
 import traceback
 from typing import Dict, Any
 
 from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
-from common import config, SUMMARY_FILE_LOCK, SUMMARY_FILE
+from common import config
+from core.digest_generator import save_summary
 from core.entry_filter import filter_entry
 from core.llm_client import get_completion
 from core.content_formater import (
@@ -108,7 +108,7 @@ def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> str:
 
         if config.digest_schedule and agent_name == 'summary':
             # save summary to file for AI digest feature
-            _save_summary_entry(entry, agent_content)
+            save_summary(entry, agent_content)
 
         formatted_result = _format_agent_result(agent_config, agent_content)
         log_entry_debug(entry, agent_name=agent_name, message=formatted_result, include_title=True)
@@ -172,33 +172,3 @@ def _format_agent_result(agent_config: Dict[str, Any], agent_content: str) -> st
         return template.replace('${content}', html_content)
     else:
         return html_content
-
-
-def _save_summary_entry(entry: Dict[str, Any], summary: str) -> None:
-    """
-    Save summary entry to JSONL file for digest feature
-    Each line contains one JSON object for better performance
-    
-    Args:
-        entry: Original entry dictionary
-        summary: Processed summary content
-    """
-    if not summary:
-        return
-    
-    entry_data = {
-        'datetime': entry['created_at'],
-        'category': entry['feed']['category']['title'],
-        'title': entry['title'],
-        'content': summary
-    }
-    
-    with SUMMARY_FILE_LOCK:
-        try:
-            with open(SUMMARY_FILE, 'a', encoding='utf-8') as file:
-                json_line = json.dumps(entry_data, ensure_ascii=False)
-                file.write(json_line + '\n')
-                
-        except Exception as e:
-            log_entry_error(entry, message=f"Failed to save summary: {e}")
-            logger.error(traceback.format_exc())
