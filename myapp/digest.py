@@ -102,7 +102,7 @@ def _add_welcome_entry(feed_generator: FeedGenerator) -> None:
     welcome_entry.id(config.digest_url)
     welcome_entry.link(href=config.digest_url)
     welcome_entry.author({'name': 'Minifluxᴬᴵ'})
-    welcome_entry.title('Welcome to Minifluxᴬᴵ Digest')
+    welcome_entry.title(f'Welcome to {config.digest_name}')
 
 
 def _add_digest_entry(feed_generator: FeedGenerator, digest_content: str) -> None:
