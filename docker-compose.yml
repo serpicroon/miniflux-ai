@@ -29,7 +29,7 @@ services:
 
   miniflux-ai:
     container_name: miniflux-ai
-    image: ghcr.io/qetesh/miniflux-ai:latest
+    image: ghcr.io/serpicroon/miniflux-ai:latest
     restart: unless-stopped
     environment:
         TZ: Asia/Shanghai

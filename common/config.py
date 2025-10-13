@@ -61,7 +61,7 @@ class Config:
             Please update your config.yml file to the new format.
             
             For migration guide and examples, please visit:
-            https://github.com/Qetesh/miniflux-ai
+            https://github.com/serpicroon/miniflux-ai
             """)
             
             print(error_message)
