@@ -1,7 +1,7 @@
 import concurrent.futures
 import time
 import traceback
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 from common import config
 from common.logger import logger
@@ -10,57 +10,70 @@ from core.entry_processor import process_entry
 
 def handle_unread_entries(miniflux_client) -> None:
     """
-    Fetch and process unread entries from Miniflux
+    Fetch and process unread entries from Miniflux using pagination
     
     Args:
         miniflux_client: Miniflux client instance
     """
     try:
-        entries_data = _fetch_entries_from_miniflux(miniflux_client)
-        if not entries_data:
-            return
-
-        process_entries_concurrently(miniflux_client, entries_data)
+        offset = 0
+        limit = 500
+        
+        while True:
+            total, entries = _fetch_entries_page(miniflux_client, offset, limit)
+            if total == 0 or not entries:
+                logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
+                break
+            
+            process_entries_concurrently(miniflux_client, entries)
+            
+            offset += limit
+            if offset >= total:
+                logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
+                break
         
     except Exception as e:
         logger.error(f"Failed to fetch and process unread entries: {e}")
         logger.error(traceback.format_exc())
 
 
-def _fetch_entries_from_miniflux(miniflux_client) -> Optional[List[Dict[str, Any]]]:
+def _fetch_entries_page(miniflux_client, offset: int, limit: int) -> Tuple[int, List[Dict[str, Any]]]:
     """
-    Fetch unread entries from Miniflux
+    Fetch a single page of unread entries from Miniflux
     
     Args:
         miniflux_client: Miniflux client instance
+        offset: Starting offset for pagination
+        limit: Maximum number of entries to fetch
         
     Returns:
-        List of unread entries, or None if no entries found
+        List of entries for current page, or None if no entries found
     """
     try:
-        logger.info("Starting to fetch unread entries")
+        logger.info(f"Fetching unread entries page, offset: {offset}")
 
-        # ascending order can have better logs for viewing the changes
         kwargs = {
             'status': ['unread'],
-            'limit': 10000,
             'order': 'id',
-            'direction': 'asc'
+            'direction': 'desc',
+            'offset': offset,
+            'limit': limit
         }
-        
-        # Add after parameter if entry_since is configured
         if config.entry_since > 0:
             kwargs['after'] = config.entry_since
-            logger.debug(f"Filtering entries after timestamp: {config.entry_since}")
+        
+        logger.debug(f"Fetching unread entries page with kwargs: {kwargs}")
         
         response = miniflux_client.get_entries(**kwargs)
+        total = response.get('total', 0)
         entries = response.get('entries', [])
         
-        logger.info(f'Found {len(entries)} unread entries')
+        logger.info(f"Fetched {len(entries)} unread entries, total: {total}, offset: {offset}")
         
-        return entries if entries else None
+        return total, entries
+        
     except Exception as e:
-        logger.error(f"Failed to fetch entries from Miniflux: {e}")
+        logger.error(f"Failed to fetch entries page from Miniflux: {e}")
         raise
 
 
