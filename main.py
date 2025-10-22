@@ -6,6 +6,7 @@ import os
 from common import config, logger
 from myapp import app
 from core import handle_unread_entries, generate_daily_digest, init_digest_feed, miniflux_client
+from core.entry_handler import initialize_executor, shutdown_executor
 
 shutdown_event = threading.Event()
 
@@ -29,6 +30,7 @@ if __name__ == '__main__':
     logger.info("Application starting...")
 
     os.makedirs('data', exist_ok=True)
+    initialize_executor()
 
     signal.signal(signal.SIGINT, lambda s, f: shutdown_event.set())
     signal.signal(signal.SIGTERM, lambda s, f: shutdown_event.set())
@@ -40,4 +42,6 @@ if __name__ == '__main__':
     schedule_thread.start()
     schedule_thread.join()
 
+    shutdown_executor()
+    
     logger.info("Application stopped...")
