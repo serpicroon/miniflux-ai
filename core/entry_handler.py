@@ -7,6 +7,40 @@ from common import config
 from common.logger import logger
 from core.entry_processor import process_entry
 
+# Global thread pool for concurrent entry processing
+_executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
+
+
+def initialize_executor() -> concurrent.futures.ThreadPoolExecutor:
+    """
+    Get or create the global thread pool instance (singleton pattern)
+    
+    Returns:
+        ThreadPoolExecutor: Global thread pool instance
+    """
+    global _executor
+    if _executor is not None:
+        logger.warning("Thread pool already initialized, skipping")
+        return
+    
+    max_workers = config.llm_max_workers
+    _executor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=max_workers,
+        thread_name_prefix='entry_processor'
+    )
+    logger.info(f"Initialized thread pool with {max_workers} workers")
+
+
+def shutdown_executor() -> None:
+    """
+    Shutdown the global thread pool (should be called on application exit)
+    """
+    global _executor
+    if _executor is not None:
+        logger.info("Shutting down thread pool")
+        _executor.shutdown(wait=True)
+        _executor = None
+
 
 def handle_unread_entries(miniflux_client) -> None:
     """
@@ -17,7 +51,7 @@ def handle_unread_entries(miniflux_client) -> None:
     """
     try:
         offset = 0
-        limit = 500
+        limit = 100
         
         while True:
             total, entries = _fetch_entries_page(miniflux_client, offset, limit)
@@ -50,8 +84,6 @@ def _fetch_entries_page(miniflux_client, offset: int, limit: int) -> Tuple[int, 
         List of entries for current page, or None if no entries found
     """
     try:
-        logger.info(f"Fetching unread entries page, offset: {offset}")
-
         kwargs = {
             'status': ['unread'],
             'order': 'id',
@@ -68,7 +100,7 @@ def _fetch_entries_page(miniflux_client, offset: int, limit: int) -> Tuple[int, 
         total = response.get('total', 0)
         entries = response.get('entries', [])
         
-        logger.info(f"Fetched {len(entries)} unread entries, total: {total}, offset: {offset}")
+        logger.debug(f"Fetched {len(entries)} unread entries, total: {total}, offset: {offset}")
         
         return total, entries
         
@@ -85,17 +117,15 @@ def process_entries_concurrently(miniflux_client, entries: List[Dict[str, Any]])
         miniflux_client: Miniflux client instance
         entries: List of entries to process
     """
-    max_workers = config.llm_max_workers
-    logger.debug(f"Starting concurrent processing with {max_workers} workers")
+    logger.debug(f"Starting concurrent processing with {config.llm_max_workers} workers")
 
     start_time = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(process_entry, miniflux_client, entry) 
-            for entry in entries
-        ]
-        _wait_for_completion(futures)
-        
+    futures = [
+        _executor.submit(process_entry, miniflux_client, entry) 
+        for entry in entries
+    ]
+    _wait_for_completion(futures)
+
     elapsed_time = time.time() - start_time
     logger.info(f'Processing completed in {elapsed_time:.2f} seconds')
 
