@@ -8,3 +8,6 @@ feedgen
 schedule
 flasgger
 ratelimit
+beautifulsoup4
+lxml
+tiktoken

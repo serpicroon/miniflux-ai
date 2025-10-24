@@ -8,7 +8,7 @@ from miniflux import ClientError
 
 from common import logger, config
 from core.digest_generator import generate_digest_content, load_digest_content
-from core.content_formater import to_html
+from core.content_helper import to_html
 
 FEED_URL = f"{config.digest_url}/rss/digest"
 
