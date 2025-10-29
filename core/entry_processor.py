@@ -6,7 +6,7 @@ from common import config
 from core.digest_generator import save_summary
 from core.entry_filter import filter_entry
 from core.llm_client import get_completion
-from core.content_formater import (
+from core.content_helper import (
     to_markdown, 
     to_html, 
     parse_entry_content, 

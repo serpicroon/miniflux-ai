@@ -2,17 +2,48 @@ import re
 import mistune
 from typing import Dict, Tuple
 from markdownify import markdownify as md
+from bs4 import BeautifulSoup
+import tiktoken
 
 from common import config
 
 MARKER = '<div data-ai-agent="{}" style="display: none;"></div>'
 MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
 
+_TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
+
 _MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugins=[
     'strikethrough',
     'table',
     'footnotes',
 ])
+
+
+def get_content_length(html_content: str) -> int:
+    """
+    Get the token count of content using tiktoken (OpenAI's tokenizer).
+    
+    This function uses tiktoken to count tokens, which provides:
+    - Fair counting across different languages (CJK and Latin scripts)
+    - Alignment with LLM processing units
+    - Natural word boundary awareness (spaces preserved)
+
+    Args:
+        html_content: HTML formatted content.
+
+    Returns:
+        Number of tokens in the content.
+    """
+    soup = BeautifulSoup(html_content, 'lxml')
+    
+    # Remove invisible content: script, style, noscript, iframe, etc.
+    for tag in soup(['script', 'style', 'noscript', 'iframe']):
+        tag.decompose()
+
+    content_text = soup.get_text(separator=' ', strip=True)
+    content_text = ' '.join(content_text.split())
+    tokens = _TIKTOKEN_ENCODER.encode(content_text)
+    return len(tokens)
 
 
 def to_markdown(content: str) -> str:

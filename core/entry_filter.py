@@ -1,10 +1,26 @@
 import fnmatch
 from typing import Dict, List, Any
 
+from core.content_helper import get_content_length
+
 
 def filter_entry(agent: tuple, entry: Dict[str, Any]) -> bool:
     """
-    Determine if entry should be processed based on allow/deny lists
+    Determine if entry should be processed by the agent
+    
+    Args:
+        agent: Tuple containing agent name and configuration
+        entry: Entry dictionary
+        
+    Returns:
+        True if entry should be processed, False otherwise
+    """
+    return _filter_site(agent, entry) and _filter_content_length(agent, entry)
+
+
+def _filter_content_length(agent: tuple, entry: Dict[str, Any]) -> bool:
+    """
+    Determine if entry should be processed based on content length
     
     Args:
         agent: Tuple containing agent name and configuration
@@ -14,8 +30,22 @@ def filter_entry(agent: tuple, entry: Dict[str, Any]) -> bool:
         True if entry should be processed, False otherwise
     """
     _, agent_config = agent
-    site_url = entry['feed']['site_url']
+    if 'content_length' not in entry:
+        entry['content_length'] = get_content_length(entry['content'])
+        
+    return entry['content_length'] > 0 and entry['content_length'] >= agent_config.get('min_content_length', 0)
+
+
+def _filter_site(agent: tuple, entry: Dict[str, Any]) -> bool:
+    """
+    Determine if entry should be processed based on site
     
+    Args:
+        agent: Tuple containing agent name and configuration
+        entry: Entry dictionary
+    """
+    _, agent_config = agent
+    site_url = entry['feed']['site_url']
     allow_list = agent_config.get('allow_list')
     deny_list = agent_config.get('deny_list')
     
