@@ -1,8 +1,10 @@
 import re
 import mistune
+import warnings
 from typing import Dict, Tuple
 from markdownify import markdownify as md
 from bs4 import BeautifulSoup
+from bs4 import MarkupResemblesLocatorWarning
 import tiktoken
 
 from common import config
@@ -18,6 +20,7 @@ _MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugin
     'footnotes',
 ])
 
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 def get_content_length(html_content: str) -> int:
     """
