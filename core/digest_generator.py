@@ -64,15 +64,16 @@ def save_summary(entry: Dict[str, Any], summary_content: str) -> None:
         'content': summary_content
     }
     
-    with SUMMARY_FILE_LOCK:
-        try:
-            with open(SUMMARY_FILE, 'a', encoding='utf-8') as file:
-                json_line = json.dumps(entry_data, ensure_ascii=False)
-                file.write(json_line + '\n')
-                
-        except Exception as e:
-            log_entry_error(entry, message=f"Failed to save summary: {e}")
-            logger.error(traceback.format_exc())
+    try:
+        json_line = json.dumps(entry_data, ensure_ascii=False)
+
+        with SUMMARY_FILE_LOCK:
+            with open(SUMMARY_FILE, 'a', encoding='utf-8') as f:
+                f.write(json_line + '\n')
+            
+    except Exception as e:
+        log_entry_error(entry, message=f"Failed to save summary: {e}")
+        logger.error(traceback.format_exc())
 
 
 def _load_summaries() -> List[Dict[str, Any]]:
@@ -89,13 +90,17 @@ def _load_summaries() -> List[Dict[str, Any]]:
             if not SUMMARY_FILE.exists():
                 logger.debug('Summary file does not exist')
                 return []
-                
-            # Read and parse summaries
-            with open(SUMMARY_FILE, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                summaries = [json.loads(line) for line in lines if line.strip()]
+            
+            unique_summaries: dict[str, Dict[str, Any]] = {}
 
-            return summaries
+            with open(SUMMARY_FILE, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    summary = json.loads(line.strip())
+                    unique_summaries[summary['id']] = summary
+
+            return list(unique_summaries.values())
             
         except Exception as e:
             logger.error(f'Unexpected error loading summaries: {e}')

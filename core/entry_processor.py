@@ -1,4 +1,5 @@
 import traceback
+import threading
 from typing import Dict, Any
 
 from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
@@ -13,6 +14,9 @@ from core.content_helper import (
     build_ordered_content
 )
 
+_processing_entries_lock = threading.Lock()
+_processing_entries: set[int] = set()
+
 
 def process_entry(miniflux_client, entry: Dict[str, Any]) -> tuple[str, ...]:
     """
@@ -22,6 +26,10 @@ def process_entry(miniflux_client, entry: Dict[str, Any]) -> tuple[str, ...]:
         miniflux_client: Miniflux client instance
         entry: Entry dictionary to process
     """
+    if not _try_acquire_entry_lock(entry['id']):
+        log_entry_debug(entry, message="Entry already being processed, skipping")
+        return ()
+
     try:
         log_entry_debug(entry, message="Starting processing")
         
@@ -58,6 +66,8 @@ def process_entry(miniflux_client, entry: Dict[str, Any]) -> tuple[str, ...]:
     except Exception as e:
         log_entry_error(entry, message=f"Processing failed: {e}")
         raise
+    finally:
+        _release_entry_lock(entry['id'])
 
 
 def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Any]) -> Dict[str, str]:
@@ -172,3 +182,18 @@ def _format_agent_result(agent_config: Dict[str, Any], agent_content: str) -> st
         return template.replace('${content}', html_content)
     else:
         return html_content
+
+
+def _try_acquire_entry_lock(entry_id: int) -> bool:
+    """Try to acquire processing lock for an entry"""
+    with _processing_entries_lock:
+        if entry_id in _processing_entries:
+            return False
+        _processing_entries.add(entry_id)
+        return True
+
+
+def _release_entry_lock(entry_id: int) -> None:
+    """Release processing lock for an entry"""
+    with _processing_entries_lock:
+        _processing_entries.discard(entry_id)
