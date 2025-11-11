@@ -5,8 +5,8 @@ from typing import Dict, List, Any
 
 from core.content_helper import get_content_length
 
-_entry_cache_lock = threading.Lock()
-_entry_cache = TTLCache[int, bool](maxsize=1000, ttl=300)
+_ENTRY_CACHE_LOCK = threading.Lock()
+_ENTRY_CACHE = TTLCache[int, bool](maxsize=1000, ttl=300)
 
 
 def filter_entry(entry: Dict[str, Any]) -> bool:
@@ -19,11 +19,11 @@ def filter_entry(entry: Dict[str, Any]) -> bool:
     Returns:
         True if entry should be processed, False otherwise
     """
-    with _entry_cache_lock:
-        if entry['id'] in _entry_cache:
+    with _ENTRY_CACHE_LOCK:
+        if entry['id'] in _ENTRY_CACHE:
             return False
 
-        _entry_cache[entry['id']] = True
+        _ENTRY_CACHE[entry['id']] = True
         return True
 
 def filter_entry_by_agent(agent: tuple, entry: Dict[str, Any]) -> bool:
