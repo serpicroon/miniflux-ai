@@ -11,3 +11,4 @@ ratelimit
 beautifulsoup4
 lxml
 tiktoken
+cachetools

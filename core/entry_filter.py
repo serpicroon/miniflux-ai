@@ -1,10 +1,32 @@
 import fnmatch
+import threading
+from cachetools import TTLCache
 from typing import Dict, List, Any
 
 from core.content_helper import get_content_length
 
+_ENTRY_CACHE_LOCK = threading.Lock()
+_ENTRY_CACHE = TTLCache[int, bool](maxsize=1000, ttl=300)
 
-def filter_entry(agent: tuple, entry: Dict[str, Any]) -> bool:
+
+def filter_entry(entry: Dict[str, Any]) -> bool:
+    """
+    Determine if entry should be processed
+    
+    Args:
+        entry: Entry dictionary
+        
+    Returns:
+        True if entry should be processed, False otherwise
+    """
+    with _ENTRY_CACHE_LOCK:
+        if entry['id'] in _ENTRY_CACHE:
+            return False
+
+        _ENTRY_CACHE[entry['id']] = True
+        return True
+
+def filter_entry_by_agent(agent: tuple, entry: Dict[str, Any]) -> bool:
     """
     Determine if entry should be processed by the agent
     
