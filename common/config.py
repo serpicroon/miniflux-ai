@@ -13,6 +13,7 @@ class Config:
         self.miniflux_base_url = self._get_config_value('miniflux', 'base_url', None)
         self.miniflux_api_key = self._get_config_value('miniflux', 'api_key', None)
         self.miniflux_webhook_secret = self._get_config_value('miniflux', 'webhook_secret', None)
+        self.miniflux_domain = self._get_config_value('miniflux', 'domain', '')
 
         self.llm_base_url = self._get_config_value('llm', 'base_url', None)
         self.llm_api_key = self._get_config_value('llm', 'api_key', None)
