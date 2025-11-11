@@ -78,10 +78,11 @@ def save_summary(entry: Dict[str, Any], summary_content: str) -> None:
 
 def _load_summaries() -> List[Dict[str, Any]]:
     """
-    Load summaries from file
+    Load summaries from file with deduplication by entry ID
+    Keep only the latest summary for each entry ID
     
     Returns:
-        List of summary dictionaries, empty list if file not found or invalid
+        List of unique summary dictionaries, empty list if file not found or invalid
     """
     with SUMMARY_FILE_LOCK:
         try:
@@ -91,7 +92,9 @@ def _load_summaries() -> List[Dict[str, Any]]:
                 logger.debug('Summary file does not exist')
                 return []
             
-            unique_summaries: dict[str, Dict[str, Any]] = {}
+            # Use dict to deduplicate by entry ID (last occurrence wins)
+            unique_summaries: dict[int, Dict[str, Any]] = {}
+            total_count = 0
 
             with open(SUMMARY_FILE, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -99,7 +102,15 @@ def _load_summaries() -> List[Dict[str, Any]]:
                         continue
                     summary = json.loads(line.strip())
                     unique_summaries[summary['id']] = summary
+                    total_count += 1
 
+            unique_count = len(unique_summaries)
+            if total_count > unique_count:
+                logger.info(
+                    f'Deduplicated summaries: {total_count} -> {unique_count} '
+                    f'({total_count - unique_count} duplicates removed)'
+                )
+            
             return list(unique_summaries.values())
             
         except Exception as e:
