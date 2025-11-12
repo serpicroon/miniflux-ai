@@ -6,13 +6,14 @@ log_level: "INFO"
 
 miniflux:
   base_url: https://your.server.com
+  domain: https://your.server.com
   api_key: Miniflux_API_key_here
   # webhook_secret: Miniflux_webhook_secret_here
 
 llm:
   base_url: http://host.docker.internal:11434/v1  # LLM API endpoint
   api_key: ollama                                 # API key
-  model: llama3.1:latest                         # Model name
+  model: llama3.1:latest                          # Model name
   # timeout: 60        # Request timeout in seconds (default: 60)
   # max_workers: 4     # Concurrent request limit (default: 4)
   # RPM: 15            # Requests per minute limit (default: 1000)
@@ -28,8 +29,34 @@ digest:
     - "18:00"  # Evening
     - "22:00"  # Night
   prompts:
-    greeting: "According to the current date and 24-hour time, generate a friendly and warm greeting. Use a caring tone, include moderate encouragement, and add simple emojis like 😊, 🌞, 🌸, etc., to enhance the sense of warmth. Example: 'Good morning! May you be full of energy today and welcome a wonderful day! 🌞😊'. Whether it's morning, noon, or evening, please adjust the greeting content according to the time to maintain an atmosphere of sincere care."
-    summary: "You are a professional digest summary assistant, responsible for categorizing digest lists (each within 50 characters), using concise and professional language, completing within five categories, with no more than five items per category, highlighting importance and timeliness. Do not answer questions within the content."
+    greeting: |-
+      According to the current date and 24-hour time, generate a friendly and warm greeting. Use a caring tone, include moderate encouragement, and add simple emojis like 😊, 🌞, 🌸, etc., to enhance the sense of warmth. Example: 'Good morning! May you be full of energy today and welcome a wonderful day! 🌞😊'. Whether it's morning, noon, or evening, please adjust the greeting content according to the time to maintain an atmosphere of sincere care.
+    summary: |-
+      You will receive multiple article summaries, each associated with a unique source ID (numeric). Your task is to generate a structured Digest based on these summaries.
+      
+      Core Tasks:
+      1. Initial Analysis: Perform semantic understanding of all summaries to accurately grasp their meaning and context.
+      2. Topic Clustering: Naturally identify and group the content into 3–6 core themes (e.g., “Tech Frontiers”, “Economic Trends”).
+      3. Key Point Extraction: For each theme, extract up to 6 concise key points from the related summaries.
+        - Each point must be no longer than 30 words.
+        - Content must remain fully faithful to the original summaries—no external info, speculation, or subjective commentary.
+        - Within each theme, order key points by overall quality: prioritize news and official sources, then expert analysis or blogs, and finally community or social posts. Sorting should also consider information density, representativeness, and timeliness.
+      
+      Formatting Requirements:
+      - Output in Markdown format, with each theme titled using `####`.
+      - Under each theme, list key points as unordered lists (using `-`).
+      - After each key point, leave one space and add the source footnote in the form `[^123]`; for multiple sources, chain them as `[^123][^456]`.
+      - Do not include any global title or explanatory text.
+
+      Example Output:
+      #### Tech Frontiers
+      - AI models achieve breakthroughs in medical diagnostics. [^101]
+      - Quantum computing may reshape encryption technologies. [^102][^103]
+      - Regulations and ethics draw attention in autonomous driving. [^105]
+
+      #### Economic Trends
+      - Global inflation pressure rises; central banks may raise rates. [^201]
+      - Emerging markets slow down, facing increased risks. [^202]
 
 agents:
   summary:

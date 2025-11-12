@@ -1,4 +1,5 @@
 import json
+import re
 import time
 import traceback
 from typing import Any, Dict, List, Optional
@@ -23,25 +24,65 @@ def generate_digest_content() -> str | None:
             
         logger.info(f'Loaded {len(summaries)} summaries for digest generation')
         
-        contents = '\n'.join(f'[{summary["id"]}] {summary["content"]}' for summary in summaries)
-        
-        # Generate greeting with current timestamp
-        current_time = time.strftime('%B %d, %Y at %I:%M %p')
-        logger.debug(f'Generating greeting for time: {current_time}')
-        greeting = get_completion(config.digest_prompts['greeting'], current_time)
-        
-        logger.debug('Generating digest content from summaries')
-        summary_digest = get_completion(config.digest_prompts['summary'], contents)
-        
+        greeting = _generate_greeting()
+        summary_digest = _generate_summary(summaries)
+
         # Combine all parts into final digest content
         response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
-
         _save_digest_content(response_content)
         return response_content
         
     except Exception as e:
         logger.error(f'Failed to generate digest content: {e}')
         raise
+
+
+def _generate_greeting() -> str:
+    """
+    Generate greeting with current timestamp
+    
+    Returns:
+        Generated greeting string
+    """
+    current_time = time.strftime('%B %d, %Y at %I:%M %p')
+    logger.debug(f'Generating greeting for time: {current_time}')
+    return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}")
+
+
+def _generate_summary(summaries: List[Dict[str, Any]]) -> str:
+    """
+    Generate summary with reference links from LLM-processed summaries
+    
+    Args:
+        summaries: List of summary dictionaries
+        
+    Returns:
+        Generated summary content string with reference links
+    """
+    logger.debug('Generating digest content from summaries')
+    contents = '\n\n'.join(f'[{s["id"]}] {s["content"]}' for s in summaries)
+    summary = get_completion(config.digest_prompts['summary'], contents)
+    summary_with_references = _transform_references(summary, config.miniflux_domain)
+    return summary_with_references
+
+
+def _transform_references(content: str, domain: str) -> str:
+    """
+    Transform [^ID] footnote references into superscript markdown links
+    
+    Args:
+        content: Content string with [^ID] footnote references
+        domain: Domain for entry links
+        
+    Returns:
+        Content string with [^ID] footnote references replaced by superscript markdown links
+    """
+    def to_links(match: re.Match) -> str:
+        ids = re.findall(r'\[\^(\d+)\]', match.group(0))
+        links = ' '.join(f"[{id}]({domain}/search/entry/{id})" for id in ids)
+        return f"<sup>{links}</sup>"
+    
+    return re.sub(r'(?:\[\^\d+\])+', to_links, content)
 
 
 def save_summary(entry: Dict[str, Any], summary_content: str) -> None:
