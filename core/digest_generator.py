@@ -64,23 +64,25 @@ def save_summary(entry: Dict[str, Any], summary_content: str) -> None:
         'content': summary_content
     }
     
-    with SUMMARY_FILE_LOCK:
-        try:
-            with open(SUMMARY_FILE, 'a', encoding='utf-8') as file:
-                json_line = json.dumps(entry_data, ensure_ascii=False)
-                file.write(json_line + '\n')
-                
-        except Exception as e:
-            log_entry_error(entry, message=f"Failed to save summary: {e}")
-            logger.error(traceback.format_exc())
+    try:
+        json_line = json.dumps(entry_data, ensure_ascii=False)
+
+        with SUMMARY_FILE_LOCK:
+            with open(SUMMARY_FILE, 'a', encoding='utf-8') as f:
+                f.write(json_line + '\n')
+            
+    except Exception as e:
+        log_entry_error(entry, message=f"Failed to save summary: {e}")
+        logger.error(traceback.format_exc())
 
 
 def _load_summaries() -> List[Dict[str, Any]]:
     """
-    Load summaries from file
+    Load summaries from file with deduplication by entry ID
+    Keep only the latest summary for each entry ID
     
     Returns:
-        List of summary dictionaries, empty list if file not found or invalid
+        List of unique summary dictionaries, empty list if file not found or invalid
     """
     with SUMMARY_FILE_LOCK:
         try:
@@ -89,13 +91,27 @@ def _load_summaries() -> List[Dict[str, Any]]:
             if not SUMMARY_FILE.exists():
                 logger.debug('Summary file does not exist')
                 return []
-                
-            # Read and parse summaries
-            with open(SUMMARY_FILE, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                summaries = [json.loads(line) for line in lines if line.strip()]
+            
+            # Use dict to deduplicate by entry ID (last occurrence wins)
+            unique_summaries: dict[int, Dict[str, Any]] = {}
+            total_count = 0
 
-            return summaries
+            with open(SUMMARY_FILE, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    summary = json.loads(line.strip())
+                    unique_summaries[summary['id']] = summary
+                    total_count += 1
+
+            unique_count = len(unique_summaries)
+            if total_count > unique_count:
+                logger.info(
+                    f'Deduplicated summaries: {total_count} -> {unique_count} '
+                    f'({total_count - unique_count} duplicates removed)'
+                )
+            
+            return list(unique_summaries.values())
             
         except Exception as e:
             logger.error(f'Unexpected error loading summaries: {e}')

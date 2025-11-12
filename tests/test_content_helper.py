@@ -1,12 +1,5 @@
 """
 Unit tests for core.content_helper module using unittest
-
-Tests cover:
-- get_content_length: Token counting with various content types
-- to_markdown: HTML to Markdown conversion
-- to_html: Markdown to HTML conversion
-- parse_entry_content: Parsing content with agent markers
-- build_ordered_content: Building ordered content with markers
 """
 
 import unittest

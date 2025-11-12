@@ -4,7 +4,7 @@ from typing import Dict, Any
 from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
 from common import config
 from core.digest_generator import save_summary
-from core.entry_filter import filter_entry
+from core.entry_filter import filter_entry, filter_entry_by_agent
 from core.llm_client import get_completion
 from core.content_helper import (
     to_markdown, 
@@ -21,6 +21,9 @@ def process_entry(miniflux_client, entry: Dict[str, Any]) -> tuple[str, ...]:
     Args:
         miniflux_client: Miniflux client instance
         entry: Entry dictionary to process
+    
+    Returns:
+        Tuple of agent_names that were processed
     """
     try:
         log_entry_debug(entry, message="Starting processing")
@@ -34,15 +37,14 @@ def process_entry(miniflux_client, entry: Dict[str, Any]) -> tuple[str, ...]:
         
         original_entry = entry.copy()
         original_entry['content'] = original_content
-        log_entry_debug(original_entry, message="Parsed original content", include_title=False, include_content=True)
         
         if existing_agent_results:
             log_entry_debug(original_entry, message=f"Found existing agent results: {list(existing_agent_results.keys())}")
         
         # process entry with config.agents excluding keys in existing agent results
-        agents_to_process = {k: v for k, v in config.agents.items() if k not in existing_agent_results.keys()}
-        new_agent_results = _process_entry_with_agents(original_entry, agents_to_process)
-        
+        new_agents = {k: v for k, v in config.agents.items() if k not in existing_agent_results.keys()}
+        new_agent_results = _process_entry_with_agents(original_entry, new_agents)
+
         if new_agent_results:
             # Combine existing and new agent results, then update entry
             all_agent_results = {**existing_agent_results, **new_agent_results}
@@ -66,10 +68,17 @@ def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Any]) ->
     
     Args:
         entry: Entry dictionary to process
+        agents: Dictionary of agent_name: agent_config
         
     Returns:
         Dictionary of agent_name: agent_result
     """
+    if not agents or not filter_entry(entry):
+        return {}
+
+    log_entry_debug(entry, message=f"Processing entry with agents: {list(agents.keys())}")
+    log_entry_debug(entry, message="Processing entry content", include_title=False, include_content=True)
+
     agent_results = {}
     
     # config.agents is ordered, required Python 3.7+
@@ -96,11 +105,12 @@ def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> str:
         Formatted result content
     """
     agent_name, agent_config = agent
-    log_entry_debug(entry, agent_name=agent_name, message="Starting processing")
 
-    if not filter_entry(agent, entry):
+    if not filter_entry_by_agent(agent, entry):
         log_entry_debug(entry, agent_name=agent_name, message="Filtered out")
         return ""
+
+    log_entry_debug(entry, agent_name=agent_name, message="Starting processing")
     
     try:
         agent_content = _get_agent_content(agent, entry)
@@ -118,7 +128,7 @@ def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> str:
     except Exception as e:
         log_entry_error(entry, agent_name=agent_name, message=f"Processing failed: {e}")
         logger.error(traceback.format_exc())
-        return ""
+        return None
 
 
 def _get_agent_content(agent: tuple, entry: Dict[str, Any]) -> str:
