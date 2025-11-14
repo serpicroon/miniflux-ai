@@ -321,21 +321,21 @@ class TestBuildOrderedContent(unittest.TestCase):
     """Tests for build_ordered_content function"""
     
     @patch('core.content_helper.config')
-    def test_no_agent_results(self, mock_config):
-        """Test building content with no agent results"""
+    def test_no_agent_contents(self, mock_config):
+        """Test building content with no agent contents"""
         original = "<p>Original content</p>"
         result = build_ordered_content({}, original)
         self.assertEqual(result, original)
     
     @patch('core.content_helper.config')
-    def test_single_agent_result(self, mock_config):
-        """Test building content with single agent result"""
+    def test_single_agent_content(self, mock_config):
+        """Test building content with single agent content"""
         mock_config.agents.keys.return_value = ["summary"]
         
-        agent_results = {"summary": "<p>Summary</p>"}
+        agent_contents = {"summary": "<p>Summary</p>"}
         original = "<p>Original</p>"
         
-        result = build_ordered_content(agent_results, original)
+        result = build_ordered_content(agent_contents, original)
         
         self.assertIn("<p>Summary</p>", result)
         self.assertIn(MARKER.format("summary"), result)
@@ -345,17 +345,17 @@ class TestBuildOrderedContent(unittest.TestCase):
         self.assertLess(result.index(MARKER.format("summary")), result.index("<p>Original</p>"))
     
     @patch('core.content_helper.config')
-    def test_multiple_agent_results(self, mock_config):
-        """Test building content with multiple agent results in order"""
+    def test_multiple_agent_contents(self, mock_config):
+        """Test building content with multiple agent contents in order"""
         mock_config.agents.keys.return_value = ["summary", "translate"]
         
-        agent_results = {
+        agent_contents = {
             "summary": "<p>Summary</p>",
             "translate": "<p>Translation</p>"
         }
         original = "<p>Original</p>"
         
-        result = build_ordered_content(agent_results, original)
+        result = build_ordered_content(agent_contents, original)
         
         # Check all parts are present
         self.assertIn("<p>Summary</p>", result)
@@ -379,13 +379,13 @@ class TestBuildOrderedContent(unittest.TestCase):
         mock_config.agents.keys.return_value = ["translate", "summary"]
         
         # Dict provides them in different order
-        agent_results = {
+        agent_contents = {
             "summary": "<p>Summary</p>",
             "translate": "<p>Translation</p>"
         }
         original = "<p>Original</p>"
         
-        result = build_ordered_content(agent_results, original)
+        result = build_ordered_content(agent_contents, original)
         
         # Should follow config order: translate before summary
         translate_idx = result.index("<p>Translation</p>")
@@ -395,16 +395,16 @@ class TestBuildOrderedContent(unittest.TestCase):
     
     @patch('core.content_helper.config')
     def test_skips_missing_agents(self, mock_config):
-        """Test that missing agents in results are skipped"""
+        """Test that missing agents in contents are skipped"""
         mock_config.agents.keys.return_value = ["summary", "translate", "custom"]
         
-        agent_results = {
+        agent_contents = {
             "summary": "<p>Summary</p>"
             # translate and custom are missing
         }
         original = "<p>Original</p>"
         
-        result = build_ordered_content(agent_results, original)
+        result = build_ordered_content(agent_contents, original)
         
         self.assertIn("<p>Summary</p>", result)
         self.assertIn(MARKER.format("summary"), result)
@@ -425,22 +425,22 @@ class TestIntegration(unittest.TestCase):
         original = "<p>Original article content</p>"
         
         # Simulate agent processing
-        agent_results = {
+        agent_contents = {
             "summary": "<p>This is a summary</p>",
             "translate": "<p>这是翻译</p>"
         }
         
         # Build ordered content
-        built_content = build_ordered_content(agent_results, original)
+        built_content = build_ordered_content(agent_contents, original)
         
         # Parse it back
-        parsed_original, parsed_agents = parse_entry_content(built_content)
+        parsed_original, parsed_agent_contents = parse_entry_content(built_content)
         
         # Verify round-trip
         self.assertEqual(parsed_original, original)
-        self.assertEqual(len(parsed_agents), 2)
-        self.assertEqual(parsed_agents["summary"], agent_results["summary"])
-        self.assertEqual(parsed_agents["translate"], agent_results["translate"])
+        self.assertEqual(len(parsed_agent_contents), 2)
+        self.assertEqual(parsed_agent_contents["summary"], agent_contents["summary"])
+        self.assertEqual(parsed_agent_contents["translate"], agent_contents["translate"])
     
     def test_html_markdown_roundtrip(self):
         """Test HTML -> Markdown -> HTML conversion"""
