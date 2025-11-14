@@ -117,16 +117,16 @@ def _get_digest_time_period(hour: int) -> str:
     """Get the time period for the digest entry"""
     if not 0 <= hour <= 23:
         raise ValueError("hour must be in 0..23")
-    if 5 <= hour < 12:
+
+    if 5 <= hour < 11:
         return "Morning"
-    elif hour == 12:
+    if 11 <= hour < 14:
         return "Midday"
-    elif 13 <= hour < 18:
+    if 14 <= hour < 18:
         return "Afternoon"
-    elif 18 <= hour < 22:
+    if 18 <= hour < 22:
         return "Evening"
-    else:
-        return "Nightly"
+    return "Night"
 
 
 def _create_digest_feed(miniflux_client) -> None:
