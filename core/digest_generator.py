@@ -43,10 +43,18 @@ def _generate_greeting() -> str:
     
     Returns:
         Generated greeting string
+        
+    Raises:
+        Exception: If both attempts fail
     """
     current_time = time.strftime('%B %d, %Y at %I:%M %p')
     logger.debug(f'Generating greeting for time: {current_time}')
-    return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}")
+    
+    try:
+        return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}")
+    except Exception as e:
+        logger.warning(f'Failed to generate greeting, retrying once: {e}')
+        return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}")
 
 
 def _generate_summary(summaries: List[Dict[str, Any]]) -> str:
@@ -58,10 +66,19 @@ def _generate_summary(summaries: List[Dict[str, Any]]) -> str:
         
     Returns:
         Generated summary content string with reference links
+        
+    Raises:
+        Exception: If both attempts fail
     """
     logger.debug('Generating digest content from summaries')
     contents = '\n\n'.join(f'[{s["id"]}] {s["content"]}' for s in summaries)
-    summary = get_completion(config.digest_prompts['summary'], contents)
+    
+    try:
+        summary = get_completion(config.digest_prompts['summary'], contents)
+    except Exception as e:
+        logger.warning(f'Failed to generate summary, retrying once: {e}')
+        summary = get_completion(config.digest_prompts['summary'], contents)
+    
     summary_with_references = _transform_references(summary, config.miniflux_domain)
     return summary_with_references
 

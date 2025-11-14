@@ -24,6 +24,10 @@ def get_completion(system_prompt: str, user_prompt: str) -> str:
         
     Returns:
         LLM response content
+        
+    Raises:
+        ValueError: If LLM returns empty or invalid response
+        Exception: If LLM API call fails
     """
     if not system_prompt or not system_prompt.strip():
         system_prompt = DEFAULT_SYSTEM_PROMPT
@@ -45,10 +49,14 @@ def get_completion(system_prompt: str, user_prompt: str) -> str:
         timeout=config.llm_timeout
     )
     logger.debug(f"LLM response: {completion}")
-    if completion.choices and completion.choices[0].message:
-        return completion.choices[0].message.content
-    else:
-        logger.error(f"LLM response : {completion}")
-        return ""
+    
+    if not completion.choices or not completion.choices[0].message:
+        raise ValueError(f"LLM returned unexpected response: {completion}")
+    
+    content = completion.choices[0].message.content
+    if not content:
+        raise ValueError(f"LLM returned empty content: {completion}")
+    
+    return content
 
  

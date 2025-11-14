@@ -137,19 +137,30 @@ def _wait_for_completion(futures: List[concurrent.futures.Future]) -> None:
     Args:
         futures: List of Future objects
     """
-    completed_count = 0
-    processed_count = 0
-    failed_count = 0
-    total_tasks = len(futures)
+    updated_count = 0
+    partial_count = 0
+    error_count = 0
+    total_count = len(futures)
     
     for future in concurrent.futures.as_completed(futures):
         try:
-            processed_agents = future.result()
-            completed_count += 1
-            if processed_agents:
-                processed_count += 1
+            results = future.result()
+
+            values = list(results.values())
+            success = sum(r.is_success for r in values)
+            error = sum(r.is_error for r in values)
+            processed = success + error
+
+            if processed == 0:
+                continue
+            elif success == processed:
+                updated_count += 1
+            elif error == processed:
+                error_count += 1
+            else:
+                partial_count += 1
         except Exception:
-            failed_count += 1
+            error_count += 1
             logger.error(traceback.format_exc())
     
-    logger.info(f"Processing summary - Total: {total_tasks}, Completed: {completed_count}, Processed: {processed_count}, Failed: {failed_count}")
+    logger.info(f"Summary - Total: {total_count}, Updated: {updated_count}, Partial: {partial_count}, Error: {error_count}")
