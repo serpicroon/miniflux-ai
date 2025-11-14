@@ -1,15 +1,22 @@
-from flask import request, abort, jsonify
-import hmac
+"""
+Webhook routes for processing Miniflux feed entries.
+
+This module provides webhook endpoints that receive notifications from Miniflux
+when new feed entries are available.
+"""
 import hashlib
-from common import logger
+import hmac
 import traceback
 
-from common import config
+from flask import Blueprint, request, abort, jsonify
+
+from common import config, logger
 from core import process_entries_concurrently, miniflux_client
-from myapp import app
+
+webhook_bp = Blueprint('webhook', __name__)
 
 
-@app.route('/api/miniflux-ai', methods=['POST'])
+@webhook_bp.route('/api/miniflux-ai', methods=['POST'])
 def miniflux_ai():
     """
     Miniflux Webhook API endpoint for processing feed entries
@@ -74,3 +81,4 @@ def _verify_webhook_signature() -> None:
     hmac_signature = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(hmac_signature, signature):
         abort(403)
+

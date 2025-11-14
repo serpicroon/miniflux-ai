@@ -1,13 +1,20 @@
+"""
+Digest RSS routes for AI-generated feed summaries.
+
+This module provides endpoints for generating and serving RSS feeds
+containing AI-generated digest summaries.
+"""
 import traceback
 
-from flask import Response
+from flask import Blueprint, Response
 
 from common import logger
 from core.digest_handler import generate_digest_rss
-from myapp import app
+
+digest_bp = Blueprint('digest', __name__)
 
 
-@app.route('/rss/digest', methods=['GET'])
+@digest_bp.route('/rss/digest', methods=['GET'])
 def rss_digest() -> Response:
     """
     AI Digest RSS Feed endpoint
@@ -27,3 +34,4 @@ def rss_digest() -> Response:
         logger.error(f'Failed to generate AI digest RSS feed: {e}')
         logger.error(traceback.format_exc())
         raise
+

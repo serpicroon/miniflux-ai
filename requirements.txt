@@ -6,7 +6,6 @@ PyYAML
 flask
 feedgen
 schedule
-flasgger
 ratelimit
 beautifulsoup4
 lxml
