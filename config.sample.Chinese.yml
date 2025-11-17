@@ -6,7 +6,6 @@ log_level: "INFO"
 
 miniflux:
   base_url: https://your.server.com
-  domain: https://your.server.com
   api_key: Miniflux_API_key_here
   # webhook_secret: Miniflux_webhook_secret_here
 
@@ -21,8 +20,16 @@ llm:
 digest:
   # RSS 订阅源生成的服务地址 (Docker Compose 环境使用容器名)
   url: &digest_url http://miniflux-ai
+
   # 在 Miniflux 中显示的订阅源名称 (可选，有默认值)
   # name: "Minifluxᴬᴵ Digest for you"
+
+  # 条目引用链接模板 (用 {id} 作为条目ID占位符)
+  # 用于在摘要中生成可点击的条目链接，支持 Miniflux/ReactFlux 等不同前端
+  # Miniflux 默认: https://your.server.com/search/entry/{id}
+  # ReactFlux: https://your.server.com/all/entry/{id}
+  entry_url: "https://your.server.com/search/entry/{id}"
+  
   # 每日摘要生成时间安排 (24小时制)
   schedule:
     - "07:30"  # 早晨

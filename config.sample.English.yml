@@ -6,7 +6,6 @@ log_level: "INFO"
 
 miniflux:
   base_url: https://your.server.com
-  domain: https://your.server.com
   api_key: Miniflux_API_key_here
   # webhook_secret: Miniflux_webhook_secret_here
 
@@ -21,8 +20,16 @@ llm:
 digest:
   # Service URL for RSS feed generation (use container name for Docker Compose)
   url: &digest_url http://miniflux-ai
+
   # Feed name displayed in Miniflux (optional, has default value)
   # name: "Minifluxᴬᴵ Digest for you"
+
+  # Entry reference link template (use {id} as entry ID placeholder)
+  # Used to generate clickable entry links in digest, supports different frontends
+  # Miniflux default: https://your.server.com/search/entry/{id}
+  # ReactFlux: https://your.server.com/all/entry/{id}
+  entry_url: "https://your.server.com/search/entry/{id}"
+  
   # Daily digest generation schedule (24-hour format)
   schedule:
     - "07:30"  # Morning
