@@ -59,13 +59,13 @@ def _generate_greeting() -> str:
 
 def _generate_summary(summaries: List[Dict[str, Any]]) -> str:
     """
-    Generate summary with reference links from LLM-processed summaries
+    Generate summary with entry links from LLM-processed summaries
     
     Args:
         summaries: List of summary dictionaries
         
     Returns:
-        Generated summary content string with reference links
+        Generated summary content string with entry links
         
     Raises:
         Exception: If both attempts fail
@@ -79,24 +79,24 @@ def _generate_summary(summaries: List[Dict[str, Any]]) -> str:
         logger.warning(f'Failed to generate summary, retrying once: {e}')
         summary = get_completion(config.digest_prompts['summary'], contents)
     
-    summary_with_references = _transform_references(summary, config.miniflux_domain)
-    return summary_with_references
+    summary_with_links = _apply_entry_links(summary, config.digest_entry_url)
+    return summary_with_links
 
 
-def _transform_references(content: str, domain: str) -> str:
+def _apply_entry_links(content: str, entry_url: str) -> str:
     """
     Transform [^ID] footnote references into superscript markdown links
     
     Args:
         content: Content string with [^ID] footnote references
-        domain: Domain for entry links
+        entry_url: URL template with {id} placeholder
         
     Returns:
-        Content string with [^ID] footnote references replaced by superscript markdown links
+        Content string with [^ID] footnote references replaced by entry links
     """
     def to_links(match: re.Match) -> str:
         ids = re.findall(r'\[\^(\d+)\]', match.group(0))
-        links = ' '.join(f"[{id}]({domain}/search/entry/{id})" for id in ids)
+        links = ' '.join(f"[{id}]({entry_url.format(id=id)})" for id in ids)
         return f"<sup>{links}</sup>"
     
     return re.sub(r'(?:\[\^\d+\])+', to_links, content)

@@ -13,7 +13,6 @@ class Config:
         self.miniflux_base_url = self._get_config_value('miniflux', 'base_url', None)
         self.miniflux_api_key = self._get_config_value('miniflux', 'api_key', None)
         self.miniflux_webhook_secret = self._get_config_value('miniflux', 'webhook_secret', None)
-        self.miniflux_domain = self._get_config_value('miniflux', 'domain', '')
 
         self.llm_base_url = self._get_config_value('llm', 'base_url', None)
         self.llm_api_key = self._get_config_value('llm', 'api_key', None)
@@ -24,6 +23,7 @@ class Config:
 
         self.digest_name = self._get_config_value('digest', 'name', "֎Minifluxᴬᴵ Digest for you")
         self.digest_url = self._get_config_value('digest', 'url', None)
+        self.digest_entry_url = self._get_config_value('digest', 'entry_url', None)
         self.digest_schedule = self._get_config_value('digest', 'schedule', None)
         self.digest_prompts = self._get_config_value('digest', 'prompts', None)
 
