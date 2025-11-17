@@ -162,14 +162,14 @@ Refer to the sample configuration files for detailed examples and documentation.
 ### Adding New Agents
 
 1. **Define agent in `config.yml`:**
-   ```yaml
-   agents:
-     your_agent:
-       prompt: "Your custom prompt here..."
-       template: "<div>${content}</div>"
-       allow_list: []
-       deny_list: []
-   ```
+  ```yaml
+  agents:
+    your_agent:
+      prompt: "Your custom prompt here..."
+      template: "<div>{content}</div>"
+      allow_list: []
+      deny_list: []
+  ```
 
 2. **The system automatically processes unread entries with all configured agents**
 

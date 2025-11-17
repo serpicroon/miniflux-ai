@@ -142,9 +142,9 @@ def _get_agent_content(agent: tuple, entry: Dict[str, Any]) -> str:
     content_markdown = to_markdown(entry['content'])
 
     prompt_template = agent_config['prompt']
-    prompt = prompt_template.replace('${title}', title).replace('${content}', content_markdown)
+    prompt = prompt_template.replace('{title}', title).replace('{content}', content_markdown)
 
-    if '${content}' in prompt_template:
+    if '{content}' in prompt_template:
         system_prompt = ""
         user_prompt = prompt
     else:
@@ -174,6 +174,6 @@ def _format_agent_content(agent_config: Dict[str, Any], agent_content: str) -> s
     html_content = to_html(agent_content)
     
     if template:
-        return template.replace('${content}', html_content)
+        return template.replace('{content}', html_content)
     else:
         return html_content
