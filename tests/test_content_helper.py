@@ -158,7 +158,7 @@ class TestToMarkdown(unittest.TestCase):
         html = '<a href="https://example.com">Link</a>'
         md = to_markdown(html)
         self.assertIn("Link", md)
-        self.assertTrue("example.com" in md or "[" in md)
+        self.assertIn("[Link](https://example.com)", md)
     
     def test_bold_conversion(self):
         """Test converting bold text"""
