@@ -1,8 +1,11 @@
-name: miniflux-ai docker image
+name: Docker Image
 
 on:
-  release:
-    types: [ published ]
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -13,10 +16,7 @@ jobs:
       contents: read
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -38,15 +38,22 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}
           tags: |
+            type=edge,branch=main
             type=semver,pattern={{version}}
-            type=raw,value=latest,enable=${{ github.event.release.latest || false}}
-            type=raw,value=pre,enable=${{ github.event.release.prerelease || false}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=semver,pattern=latest
             type=raw,value=dev,enable=${{ github.event_name == 'workflow_dispatch' }}
+          flavor: |
+            latest=false
 
       - name: Build and push Docker image
-        id: push
         uses: docker/build-push-action@v6
         with:
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
