@@ -1,0 +1,97 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+.cursorrules
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+*.cover
+.hypothesis/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Documentation
+README.md
+docs/
+*.md
+LICENSE
+
+# Build and distribution
+build/
+dist/
+*.egg
+*.egg-info/
+.eggs/
+wheels/
+
+# Logs and databases
+*.log
+logs/
+*.sqlite3
+*.db
+
+# Configuration samples
+*.sample.*
+config.sample.*
+
+# Runtime data
+data/
+
+# Type checking and linting
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+
+# Package managers
+pip-log.txt
+.pdm.toml
+
+# Temporary files
+*.tmp
+*.bak
+.cache/
+
