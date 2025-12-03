@@ -20,7 +20,7 @@ services:
       - POSTGRES_PASSWORD=secret
       - POSTGRES_DB=miniflux
     volumes:
-      - miniflux-db:/var/lib/postgresql/data
+      - ./miniflux-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "miniflux"]
       interval: 10s
@@ -35,5 +35,4 @@ services:
         TZ: Asia/Shanghai
     volumes:
         - ./config.yml:/app/config.yml
-        # Provide persistent for AI digest
-        # - ./data:/app/data
+        - ./miniflux-ai-data:/app/data
