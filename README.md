@@ -4,118 +4,84 @@
 [![GitHub license](https://img.shields.io/github/license/serpicroon/miniflux-ai)](https://github.com/serpicroon/miniflux-ai/blob/main/LICENSE)
 [![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2Fserpicroon%2Fminiflux--ai-blue)](https://github.com/serpicroon/miniflux-ai/pkgs/container/miniflux-ai)
 
-> **Supercharge your RSS reading experience with AI-powered content processing**
+> **Transform your RSS feed into an intelligent information hub**
 
-An intelligent RSS feed processor that integrates seamlessly with Miniflux, leveraging Large Language Models (LLMs) to generate summaries, translations, and AI-driven news insights. Transform your information consumption with automated content enhancement and daily digest generation.
+An advanced, self-deployed AI companion for [Miniflux](https://miniflux.app/). While others just summarize, this project provides a robust pipeline to translate, analyze, and curate your information diet.
 
-## ✨ Features
+---
 
-### 🔗 **Seamless Miniflux Integration**
-- **Real-time Processing**: Webhook support for instant content processing
-- **API Integration**: Fetch and process unread entries via Miniflux API
+## 🚀 Why This Fork?
 
-### 🤖 **Advanced LLM Processing**
-- **Multi-Agent System**: Configurable AI agents for different content processing tasks
-- **Smart Summaries**: Generate concise, professional summaries of articles
-- **Translation**: High-quality translations preserving journalistic tone
-- **Custom Prompts**: Fully customizable prompts for each processing agent
+Built from the ground up for stability and data integrity.
 
-### 📰 **AI-Powered Daily Digest**
-- **Scheduled Generation**: Automated daily digest creation at configurable times
-- **Smart Categorization**: Intelligent content grouping and prioritization
-- **RSS Feed Output**: Dedicated RSS feed for AI-generated digests
+### 1. 🛡️ Non-Destructive Processing
+Unlike tools that overwrite content or clutter articles with raw text, this project uses **Semantic HTML Markers**.
+- **Data Safety**: Original article content is **never modified**, only appended to.
+- **Idempotency**: Agents can be re-run safely without duplicating content.
+- **Clean UI**: AI outputs are injected as clean, styled HTML components.
 
-### ⚙️ **Flexible Configuration**
-- **YAML Configuration**: Easy-to-manage configuration
-- **URL Filtering**: Allow/deny lists for targeted content processing
-- **Output Templates**: Customizable HTML templates for processed content
-- **Rate Limiting**: Built-in request rate limiting and timeout management
+### 2. 🔗 Source-Traceable Daily Digest
+More than just a summary. The digest engine generates a structured briefing where every insight is verifiable:
+- **Topic Clustering**: Intelligently groups related news (e.g., "AI Breakthroughs", "Global Markets").
+- **Citation Backlinks**: Every point includes clickable references linking directly to the source article.
+- **Deduplication**: Automatically filters out duplicate stories across different feeds.
+
+### 3. 💰 Cost-Efficient Filtering
+Don't waste API credits on empty updates or image-only posts.
+- **Smart Skip**: Ignores entries that are too short or lack meaningful text content.
+- **Token-Based Thresholds**: Define minimum length using `tiktoken` counts. This ensures fair filtering for both concise languages (like Chinese) and verbose ones (like English), avoiding processing of low-value entries.
+
+### 4. ⚡ Enterprise-Level Concurrency
+Designed to handle thousands of unread entries efficiently.
+- **Global Thread Pool**: A singleton executor manages system resources to prevent overloads.
+- **Pagination**: Fetches entries in batches to manage memory usage.
+- **Retry Logic**: Built-in handling for network jitters and API rate limits.
+
+---
+
+## ✨ Endless Possibilities with Agents
+
+You are not limited to "Summary" and "Translation". Define **custom agents** in your config to extract exactly what you need.
+
+**Example: The "Market Analyst" Agent**
+*Want to find trading signals in tech news?*
+```yaml
+agents:
+  analyst:
+    prompt: "Analyze this article for potential stock market impacts. Bullish or Bearish?"
+    template: '<div class="insight-box">📈 <strong>Market Impact:</strong> {content}</div>'
+    allow_list: ["*bloomberg.com*", "*techcrunch.com*"]
+```
+
+**Example: The "TL;DR" Agent**
+*Just want 3 bullet points?*
+```yaml
+agents:
+  tldr:
+    prompt: "Give me 3 bullet points."
+    template: '<div class="tldr">📝 {content}</div>'
+```
+
+*Configure as many agents as you want. They run in sequence and stack beautifully.*
+
+---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- **Python 3.11+**
-- **Miniflux instance** with API access
-- **LLM API access** (OpenAI, Ollama, or compatible)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/serpicroon/miniflux-ai.git
-   cd miniflux-ai
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure the application**
-   ```bash
-   cp config.sample.English.yml config.yml
-   # cp config.sample.Chinese.yml config.yml
-   # Edit config.yml with your settings
-   ```
-
-4. **Run the application**
-   ```bash
-   python main.py
-   ```
-
-## 🐳 Docker Deployment
-
 ### Using Docker Compose (Recommended)
 
-The project includes a complete `docker-compose.yml` with Miniflux and PostgreSQL:
+The easiest way to get started. We provide a complete `docker-compose.yml` that sets up Miniflux, the database, and the AI service together.
 
-```yaml
-services:
-  miniflux:
-    image: miniflux/miniflux:latest
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "80:8080"
-    environment:
-      - DATABASE_URL=postgres://miniflux:secret@postgres/miniflux?sslmode=disable
-      - RUN_MIGRATIONS=1
-      - CREATE_ADMIN=1
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=test123
-
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      - POSTGRES_USER=miniflux
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=miniflux
-    volumes:
-      - miniflux-db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "miniflux"]
-      interval: 10s
-      start_period: 30s
-
-  miniflux-ai:
-    container_name: miniflux-ai
-    image: ghcr.io/serpicroon/miniflux-ai:latest
-    restart: unless-stopped
-    environment:
-      TZ: Asia/Shanghai
-    volumes:
-      - ./config.yml:/app/config.yml
-      # Optional: Persistent storage for digest data
-      # - ./data:/app/data
-
-volumes:
-  miniflux-db:
-```
-
-**Deploy the stack:**
 ```bash
+# 1. Clone the repository
+git clone https://github.com/serpicroon/miniflux-ai.git
+cd miniflux-ai
+
+# 2. Configure your environment
+cp config.sample.English.yml config.yml
+# Edit config.yml with your API keys and preferences
+
+# 3. Start the services
 docker-compose up -d
 ```
 
@@ -125,167 +91,57 @@ docker-compose up -d
 docker run -d \
   --name miniflux-ai \
   -v $(pwd)/config.yml:/app/config.yml \
-  -e TZ=Asia/Shanghai \
   ghcr.io/serpicroon/miniflux-ai:latest
 ```
 
+---
+
 ## ⚙️ Configuration
 
-Create your configuration file from the provided templates:
+Instead of reading a long wiki, please refer to the extensively commented sample files:
 
-```bash
-# For English configuration
-cp config.sample.English.yml config.yml
+- **[config.sample.English.yml](config.sample.English.yml)** - Recommended starting point.
+- **[config.sample.Chinese.yml](config.sample.Chinese.yml)** - Chinese version with localized prompts.
 
-# For Chinese configuration  
-cp config.sample.Chinese.yml config.yml
-```
+**Key capabilities you can tweak:**
+- **Per-Agent Filters**: Only run "Translate" on foreign sites? Easy.
+- **Digest Schedule**: Morning coffee or evening review? You decide.
+- **HTML Templates**: Customize exactly how the AI output looks in your reader.
 
-Edit `config.yml` to configure:
-- **Miniflux**: API endpoint and credentials
-- **LLM**: Model settings and API configuration
-- **Digest**: Schedule and RSS feed settings
-- **Agents**: AI processing agents and prompts
+---
 
-Refer to the sample configuration files for detailed examples and documentation.
+## 🔌 Setup Guide
 
-### Webhook Setup
+### 1. Enable Real-time Processing
+Go to Miniflux **Settings → Integrations → Webhook** and set:
+- **Url**: `http://miniflux-ai/api/miniflux-ai` (use container name)
+- **Secret**: Match the `webhook_secret` in your `config.yml`
 
-1. **Configure webhook in Miniflux:**
-   - Go to Settings → Integrations → Webhook
-   - Set URL: `http://your-miniflux-ai-server/api/miniflux-ai`
-   - Set secret in `config.yml` under `miniflux.webhook_secret`
+### 2. Subscribe to Daily Digest
+Once running, the system will **automatically create** a new feed in your Miniflux named **"Minifluxᴬᴵ Digest for you"**.
+*Just wait for your first scheduled digest to arrive!*
 
-2. **For Docker Compose setup:**
-   - Use container name: `http://miniflux-ai/api/miniflux-ai`
-
-### Adding New Agents
-
-1. **Define agent in `config.yml`:**
-  ```yaml
-  agents:
-    your_agent:
-      prompt: "Your custom prompt here..."
-      template: "<div>{content}</div>"
-      allow_list: []
-      deny_list: []
-  ```
-
-2. **The system automatically processes unread entries with all configured agents**
-
-### Custom LLM Integration
-
-The project uses OpenAI-compatible APIs. Supported providers:
-- **OpenAI GPT models**
-- **Ollama (local LLMs)**
-- **Anthropic Claude**
-- **Google Gemini**
-- **Any OpenAI-compatible API**
+---
 
 ## 🔧 Troubleshooting
 
-### Common Issues
-
 <details>
-<summary><strong>Content formatting issues in Miniflux</strong></summary>
+<summary><strong>Filters (Allow/Deny lists) not working?</strong></summary>
 
-Add this CSS to Miniflux Settings → Custom CSS:
-```css
-pre code {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-```
+The filters use **Glob patterns** (like wildcards), NOT Regex.
+*   ✅ `*github.com*` (Correct)
+*   ❌ `.*github\.com.*` (Incorrect)
 </details>
 
 <details>
-<summary><strong>Webhook not receiving events</strong></summary>
+<summary><strong>Webhook not triggering?</strong></summary>
 
-1. Verify webhook URL is accessible from Miniflux
-2. Check webhook secret configuration
-3. Review application logs for authentication errors
-4. Ensure firewall allows incoming connections
+*   Ensure the Miniflux container can reach the `miniflux-ai` container (they should be in the same Docker network).
+*   Verify the webhook secret matches in both places.
 </details>
 
-<details>
-<summary><strong>LLM timeout errors</strong></summary>
-
-1. Increase `timeout` value in `config.yml`
-2. Reduce `max_workers` for lower concurrency
-3. Check LLM service availability
-4. Verify API key and endpoint configuration
-</details>
-
-<details>
-<summary><strong>Allow/deny lists not working as expected</strong></summary>
-
-The filtering system uses **fnmatch patterns** (not regex) to match against the `site_url` field from RSS feeds.
-
-1. **Wrong pattern syntax**: Use `*` for wildcards, not regex `.*`
-   ```yaml
-   # ✅ Correct (fnmatch)
-   - https://example.com/*
-   - *github.com/trending*
-   
-   # ❌ Wrong (regex syntax)
-   - https://example\.com/.*
-   - .*github\.com/trending.*
-   ```
-
-2. **Incomplete URL matching**: Match the full `site_url`, not just the domain
-   ```yaml
-   # ✅ Correct - matches full site_url
-   - https://github.com/trending/?since=daily*
-   - *spoken_language_code=zh*
-   
-   # ❌ Wrong - only domain
-   - github.com
-   - trending
-   ```
-
-3. **Case sensitivity**: Patterns are case-sensitive
-   ```yaml
-   # ✅ Match both cases if needed
-   - *GitHub.com*
-   - *github.com*
-   ```
-
-**Testing your patterns:**
-```python
-import fnmatch
-site_url = "https://github.com/trending/?since=daily&spoken_language_code=zh"
-pattern = "*github.com/trending*"
-print(fnmatch.fnmatch(site_url, pattern))  # Should return True
-```
-
-**Debug tip**: Check your Miniflux feed detail to see the actual `site_url` values being processed.
-</details>
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
-
-### Development Guidelines
-
-- Follow Python PEP 8 style guidelines
-- Add type hints for new functions
-- Include docstrings for public methods
-- Write tests for new features
-- Update documentation as needed
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **[Qetesh](https://github.com/Qetesh)** - Original author and creator of this project
-- **[Miniflux](https://miniflux.app/)** - Minimalist RSS reader
-- **[OpenAI](https://openai.com/)** - GPT models and API
-- **Contributors** - Thank you to all contributors who help improve this project
+MIT License — see [LICENSE](LICENSE) for details.

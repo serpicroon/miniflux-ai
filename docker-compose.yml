@@ -35,5 +35,4 @@ services:
         TZ: Asia/Shanghai
     volumes:
         - ./config.yml:/app/config.yml
-        # Provide persistent for AI digest
-        # - ./data:/app/data
+        - ./miniflux-ai-data:/app/data
