@@ -119,7 +119,10 @@ def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> AgentResu
         formatted_content = _format_agent_content(agent_config, agent_content)
         log_entry_debug(entry, agent_name=agent_name, message=f"Formatted content: {formatted_content}", include_title=True)
         
-        return AgentResult.success(formatted_content)     
+        return AgentResult.success(formatted_content)
+    except ValueError as e:
+        log_entry_error(entry, agent_name=agent_name, message=f"LLM error: {e}")
+        return AgentResult.error(e, message=str(e))
     except Exception as e:
         log_entry_error(entry, agent_name=agent_name, message=f"Processing failed: {e}")
         logger.error(traceback.format_exc())
