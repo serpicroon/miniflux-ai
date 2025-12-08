@@ -58,5 +58,4 @@ def get_completion(system_prompt: str, user_prompt: str) -> str:
         raise ValueError(f"LLM returned empty content: {completion}")
     
     return content.strip()
-
  

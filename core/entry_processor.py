@@ -7,6 +7,7 @@ from common.models import AgentResult
 from core.digest_generator import save_summary
 from core.entry_filter import filter_entry, filter_entry_by_agent
 from core.llm_client import get_completion
+from core.miniflux_client import get_miniflux_client
 from core.content_helper import (
     to_markdown, 
     to_html, 
@@ -15,12 +16,11 @@ from core.content_helper import (
 )
 
 
-def process_entry(miniflux_client, entry: Dict[str, Any]) -> Dict[str, AgentResult]:
+def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
     """
     Process a single entry through all configured agents
     
     Args:
-        miniflux_client: Miniflux client instance
         entry: Entry dictionary to process
     
     Returns:
@@ -52,7 +52,7 @@ def process_entry(miniflux_client, entry: Dict[str, Any]) -> Dict[str, AgentResu
             all_agent_contents = {**existing_agent_contents, **new_agent_contents}
             ordered_content = build_ordered_content(all_agent_contents, original_content)
             
-            miniflux_client.update_entry(entry['id'], content=ordered_content)
+            get_miniflux_client().update_entry(entry['id'], content=ordered_content)
             log_entry_info(entry, message=f"Updated successfully with new agent contents: {list(new_agent_contents.keys())}")
         else:
             log_entry_debug(entry, message="No new agent contents generated, entry unchanged")

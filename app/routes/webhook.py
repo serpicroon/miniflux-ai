@@ -11,7 +11,7 @@ import traceback
 from flask import Blueprint, request, abort, jsonify
 
 from common import config, logger
-from core import process_entries_concurrently, miniflux_client
+from core import process_entries_concurrently
 
 webhook_bp = Blueprint('webhook', __name__)
 
@@ -52,7 +52,7 @@ def miniflux_ai():
         for entry in entries_list:
             entry['feed'] = feed_info
         
-        process_entries_concurrently(miniflux_client, entries_list)
+        process_entries_concurrently(entries_list)
         return jsonify({'status': 'ok'})
         
     except Exception as e:
@@ -81,4 +81,3 @@ def _verify_webhook_signature() -> None:
     hmac_signature = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(hmac_signature, signature):
         abort(403)
-

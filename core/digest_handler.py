@@ -9,25 +9,23 @@ from miniflux import ClientError
 from common import logger, config
 from core.digest_generator import generate_digest_content, load_digest_content
 from core.content_helper import to_html
+from core.miniflux_client import get_miniflux_client
 
 FEED_URL = f"{config.digest_url}/rss/digest"
 
 
-def init_digest_feed(miniflux_client) -> None:
+def init_digest_feed() -> None:
     """
     Initialize AI digest feed if it doesn't exist in Miniflux
-    
-    Args:
-        miniflux_client: Miniflux client instance
     """
     try:
         logger.debug('Checking if AI digest feed exists')
         
-        feeds = miniflux_client.get_feeds()
+        feeds = get_miniflux_client().get_feeds()
         digest_feed_id = _find_digest_feed_id(feeds)
         
         if digest_feed_id is None:
-            _create_digest_feed(miniflux_client)
+            _create_digest_feed()
         else:
             logger.debug(f'Digest feed already exists with ID: {digest_feed_id}')
             
@@ -36,18 +34,15 @@ def init_digest_feed(miniflux_client) -> None:
         raise
 
 
-def generate_daily_digest(miniflux_client) -> None:
+def generate_daily_digest() -> None:
     """
     Generate daily digest from AI summaries and refresh corresponding feed
-    
-    Args:
-        miniflux_client: Miniflux client instance for feed refresh
     """
     logger.info('Starting daily digest generation')
     
     try:
         if generate_digest_content():
-            _refresh_digest_feed(miniflux_client)
+            _refresh_digest_feed()
             logger.info('Daily digest generation completed successfully')
     except Exception as e:
         logger.error(f'Failed to generate daily digest: {e}')
@@ -129,11 +124,11 @@ def _get_digest_time_period(hour: int) -> str:
     return "Night"
 
 
-def _create_digest_feed(miniflux_client) -> None:
+def _create_digest_feed() -> None:
     """Create digest feed in Miniflux"""
     try:
         logger.debug(f'Creating AI digest feed with URL: {FEED_URL}')
-        miniflux_client.create_feed(category_id=1, feed_url=FEED_URL)
+        get_miniflux_client().create_feed(category_id=1, feed_url=FEED_URL)
         logger.info(f'Successfully created AI digest feed in Miniflux: {FEED_URL}')
     except ClientError as e:
         logger.error(f'Failed to create AI digest feed in Miniflux: {e.get_error_reason()}')
@@ -143,15 +138,15 @@ def _create_digest_feed(miniflux_client) -> None:
         raise
 
 
-def _refresh_digest_feed(miniflux_client) -> None:
+def _refresh_digest_feed() -> None:
     """Find and refresh the AI digest feed in Miniflux"""
     try:
-        feeds = miniflux_client.get_feeds()
+        feeds = get_miniflux_client().get_feeds()
         digest_feed_id = _find_digest_feed_id(feeds)
         
         if digest_feed_id:
             logger.debug(f'Found AI digest feed with ID: {digest_feed_id}')
-            miniflux_client.refresh_feed(digest_feed_id)
+            get_miniflux_client().refresh_feed(digest_feed_id)
             logger.info('Successfully refreshed AI digest feed in Miniflux')
         else:
             logger.warning('AI digest feed not found in Miniflux')

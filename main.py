@@ -13,7 +13,7 @@ import schedule
 
 from app import create_app
 from common import config, logger
-from core import handle_unread_entries, generate_daily_digest, init_digest_feed, miniflux_client
+from core import handle_unread_entries, generate_daily_digest, init_digest_feed, get_miniflux_client
 from core.entry_handler import initialize_executor, shutdown_executor
 
 shutdown_event = threading.Event()
@@ -40,13 +40,13 @@ def run_scheduler() -> None:
     """
     try:
         if config.digest_schedule:
-            init_digest_feed(miniflux_client)
+            init_digest_feed()
             for digest_time in config.digest_schedule:
-                schedule.every().day.at(digest_time).do(generate_daily_digest, miniflux_client)
+                schedule.every().day.at(digest_time).do(generate_daily_digest)
                 logger.info(f"Scheduled daily digest at {digest_time}")
         
         interval = 15 if config.miniflux_webhook_secret else 1
-        unread_entries_job = schedule.every(interval).minutes.do(handle_unread_entries, miniflux_client)
+        unread_entries_job = schedule.every(interval).minutes.do(handle_unread_entries)
         logger.info(f"Scheduled entry processing every {interval} minute(s)")
         unread_entries_job.next_run = datetime.datetime.now()
         
@@ -72,6 +72,7 @@ def initialize_application() -> None:
     """Initialize application components and resources."""
     try:
         os.makedirs('data', exist_ok=True)
+        get_miniflux_client()
         initialize_executor()
         logger.info("Application initialized")
     except Exception as e:
