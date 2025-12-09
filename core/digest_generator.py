@@ -51,10 +51,10 @@ def _generate_greeting() -> str:
     logger.debug(f'Generating greeting for time: {current_time}')
     
     try:
-        return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}")
+        return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}", temperature=0.8)
     except Exception as e:
         logger.warning(f'Failed to generate greeting, retrying once: {e}')
-        return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}")
+        return get_completion(config.digest_prompts['greeting'], f"Current time: {current_time}", temperature=0.8)
 
 
 def _generate_summary(summaries: List[Dict[str, Any]]) -> str:
