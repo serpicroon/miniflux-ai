@@ -3,8 +3,7 @@ import time
 import traceback
 from typing import Optional, List, Dict, Any, Tuple
 
-from common import config
-from common.logger import logger
+from common import config, logger, shutdown_event
 from core.entry_processor import process_entry
 from core.miniflux_client import get_miniflux_client
 
@@ -52,6 +51,9 @@ def handle_unread_entries() -> None:
         limit = 100
         
         while True:
+            if shutdown_event.is_set():
+                break
+
             total, entries = _fetch_entries_page(offset, limit)
             if total == 0 or not entries:
                 logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
@@ -113,6 +115,9 @@ def process_entries_concurrently(entries: List[Dict[str, Any]]) -> None:
     Args:
         entries: List of entries to process
     """
+    if shutdown_event.is_set():
+        return
+    
     logger.debug(f"Starting concurrent processing with {config.llm_max_workers} workers")
 
     start_time = time.time()
