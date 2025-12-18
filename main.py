@@ -12,11 +12,9 @@ from typing import NoReturn
 import schedule
 
 from app import create_app
-from common import config, logger
+from common import config, logger, shutdown_event
 from core import handle_unread_entries, generate_daily_digest, init_digest_feed, get_miniflux_client
 from core.entry_handler import initialize_executor, shutdown_executor
-
-shutdown_event = threading.Event()
 
 
 def run_flask_server() -> None:
