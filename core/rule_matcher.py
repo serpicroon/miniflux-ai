@@ -227,10 +227,18 @@ def match_rules(entry: Dict[str, Any],
     """
     Determine if entry should be processed based on allow and deny rules.
     
-    Rule logic (following Miniflux behavior):
-    1. If allow_rules exist and not empty: entry must match at least one allow rule
-    2. Elif deny_rules exist: entry must NOT match any deny rule
-    3. Else (no rules): process all entries
+    Rule processing order (following Miniflux behavior):
+    1. Check deny_rules (Block Rules) first - highest priority
+       → If matched: immediately block, return False
+    2. Check allow_rules (Keep Rules) - if defined
+       → If matched: keep, return True
+       → If NOT matched: block, return False
+    3. If no allow_rules defined: default to keep, return True
+    
+    This implements:
+    - Blacklist mode (only deny_rules): Block specific entries, keep others
+    - Whitelist mode (only allow_rules): Keep only specific entries
+    - Combined mode (both): Block first, then require allow match
     
     Args:
         entry: Entry dictionary from Miniflux
@@ -241,24 +249,30 @@ def match_rules(entry: Dict[str, Any],
         True if entry should be processed, False otherwise
         
     Examples:
-        >>> # Only process entries matching allow rules
+        >>> # Blacklist mode: block spam, keep others
+        >>> match_rules(entry, [], ["EntryTitle=(?i)spam"])
+        
+        >>> # Whitelist mode: keep only Python articles
         >>> match_rules(entry, ["EntryTitle=(?i)python"], [])
         
-        >>> # Process all except entries matching deny rules
-        >>> match_rules(entry, [], ["EntryTitle=(?i)spam"])
+        >>> # Combined mode: block ads first, then keep only tech
+        >>> match_rules(entry, ["FeedCategory=Tech"], ["EntryTitle=(?i)ad"])
         
         >>> # No rules: process everything
         >>> match_rules(entry, [], [])
         True
     """
-    # Priority 1: If allow_rules exist, entry must match at least one
+    # Step 1: Check deny_rules first (Block Rules - highest priority)
+    # If entry matches ANY deny rule, immediately block it
+    if deny_rules and _match_any_rule(entry, deny_rules):
+        return False
+    
+    # Step 2: Check allow_rules (Keep Rules)
+    # If allow_rules are defined, entry MUST match at least one
     if allow_rules:
         return _match_any_rule(entry, allow_rules)
     
-    # Priority 2: If deny_rules exist, entry must NOT match any
-    if deny_rules:
-        return not _match_any_rule(entry, deny_rules)
-    
-    # No rules: process all entries
+    # Step 3: No allow_rules defined, default to keep
+    # (Blacklist mode: only block entries matching deny_rules)
     return True
 

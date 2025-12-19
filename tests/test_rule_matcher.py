@@ -521,14 +521,31 @@ class TestMatchRules(unittest.TestCase):
         result = match_rules(self.entry, [], deny_rules)
         self.assertTrue(result)
     
-    def test_allow_rules_take_precedence(self):
-        """Test that allow_rules are checked before deny_rules"""
-        allow_rules = ["EntryTitle=(?i)python"]
-        deny_rules = ["FeedSiteUrl=.*example.*"]
+    def test_deny_rules_take_precedence(self):
+        """Test that deny_rules are checked before allow_rules (Miniflux behavior)"""
+        allow_rules = ["EntryTitle=(?i)python"]  # Would match
+        deny_rules = ["FeedSiteUrl=.*example.*"]  # Also matches
         result = match_rules(self.entry, allow_rules, deny_rules)
-        # Allow rule matches, so should return True
-        # Deny rules are not checked when allow_rules exist
+        # Deny rule checked first and matches, so entry is blocked
+        # even though it would match allow_rules
+        self.assertFalse(result)
+    
+    def test_combined_rules_allow_after_deny(self):
+        """Test combined mode: deny first, then allow"""
+        # Entry doesn't match deny_rules but matches allow_rules
+        allow_rules = ["EntryTitle=(?i)python"]
+        deny_rules = ["EntryTitle=(?i)spam"]  # Doesn't match
+        result = match_rules(self.entry, allow_rules, deny_rules)
+        # Not blocked by deny, matches allow → keep
         self.assertTrue(result)
+    
+    def test_combined_rules_neither_match(self):
+        """Test combined mode: neither deny nor allow match"""
+        allow_rules = ["EntryTitle=(?i)javascript"]  # Doesn't match
+        deny_rules = ["EntryTitle=(?i)spam"]  # Doesn't match
+        result = match_rules(self.entry, allow_rules, deny_rules)
+        # Not blocked by deny, but allow_rules exist and don't match → block
+        self.assertFalse(result)
     
     def test_allow_rules_with_nevermatch_placeholder(self):
         """Test real-world pattern: NeverMatch as placeholder"""

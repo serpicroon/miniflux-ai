@@ -158,7 +158,9 @@ The filtering system uses **Regex patterns** with Miniflux-style rules.
 **Tips**:
 - Use `(?i)` prefix for case-insensitive matching
 - Remember to escape special regex characters (e.g., `\.` for literal dot)
-- Rules are evaluated in order; first match wins
+- **deny_rules** always take precedence over **allow_rules** (security first)
+- Use `allow_rules: []` or omit it for blacklist mode (default keep)
+- Test your regex at [regex101.com](https://regex101.com) (Python flavor)
 
 See [config.sample.English.yml](config.sample.English.yml) for more examples.
 </details>
