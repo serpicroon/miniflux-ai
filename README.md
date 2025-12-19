@@ -137,12 +137,22 @@ The filtering system uses **Regex patterns** with Miniflux-style rules.
 **Supported Fields**:
 - Entry fields: `EntryTitle`, `EntryURL`, `EntryContent`, `EntryAuthor`, `EntryTag`
 - Feed fields: `FeedSiteUrl`, `FeedTitle`, `FeedCategoryTitle`
-- Special: `EntryContentMinLength` (numeric), `NeverMatch` (placeholder)
+- Special: `EntryContentLength` (length comparison), `NeverMatch` (placeholder)
+
+**EntryContentLength Operators**:
+- `gt:N` - Content length > N tokens (greater than)
+- `ge:N` - Content length >= N tokens (greater or equal)
+- `lt:N` - Content length < N tokens (less than)
+- `le:N` - Content length <= N tokens (less or equal)
+- `eq:N` - Content length == N tokens (equal)
+- `between:N,M` - N ≤ Content length ≤ M tokens (inclusive range)
 
 **Examples**:
 *   ✅ `FeedSiteUrl=.*github\.com.*` (Match any github.com URL)
 *   ✅ `EntryTitle=(?i)python` (Case-insensitive title match)
-*   ✅ `EntryContentMinLength=100` (Minimum 100 tokens)
+*   ✅ `EntryContentLength=gt:100` (More than 100 tokens)
+*   ✅ `EntryContentLength=ge:50` (50 or more tokens)
+*   ✅ `EntryContentLength=between:50,200` (50-200 tokens)
 *   ❌ `*github.com*` (Old glob pattern - no longer supported)
 
 **Tips**:

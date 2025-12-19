@@ -8,6 +8,7 @@ from unittest.mock import patch
 from core.rule_matcher import (
     parse_rule,
     get_entry_field_value,
+    _match_content_length,
     _match_any_rule,
     match_rules,
     FIELD_ENTRY_TITLE,
@@ -15,7 +16,7 @@ from core.rule_matcher import (
     FIELD_ENTRY_CONTENT,
     FIELD_ENTRY_AUTHOR,
     FIELD_ENTRY_TAG,
-    FIELD_ENTRY_CONTENT_MIN_LENGTH,
+    FIELD_ENTRY_CONTENT_LENGTH,
     FIELD_FEED_SITE_URL,
     FIELD_FEED_TITLE,
     FIELD_FEED_CATEGORY_TITLE,
@@ -34,7 +35,7 @@ class TestFieldConstants(unittest.TestCase):
         self.assertEqual(FIELD_ENTRY_CONTENT, 'EntryContent')
         self.assertEqual(FIELD_ENTRY_AUTHOR, 'EntryAuthor')
         self.assertEqual(FIELD_ENTRY_TAG, 'EntryTag')
-        self.assertEqual(FIELD_ENTRY_CONTENT_MIN_LENGTH, 'EntryContentMinLength')
+        self.assertEqual(FIELD_ENTRY_CONTENT_LENGTH, 'EntryContentLength')
         self.assertEqual(FIELD_FEED_SITE_URL, 'FeedSiteUrl')
         self.assertEqual(FIELD_FEED_TITLE, 'FeedTitle')
         self.assertEqual(FIELD_FEED_CATEGORY_TITLE, 'FeedCategoryTitle')
@@ -47,7 +48,7 @@ class TestFieldConstants(unittest.TestCase):
         self.assertIn(FIELD_ENTRY_CONTENT, SUPPORTED_FIELDS)
         self.assertIn(FIELD_ENTRY_AUTHOR, SUPPORTED_FIELDS)
         self.assertIn(FIELD_ENTRY_TAG, SUPPORTED_FIELDS)
-        self.assertIn(FIELD_ENTRY_CONTENT_MIN_LENGTH, SUPPORTED_FIELDS)
+        self.assertIn(FIELD_ENTRY_CONTENT_LENGTH, SUPPORTED_FIELDS)
         self.assertIn(FIELD_FEED_SITE_URL, SUPPORTED_FIELDS)
         self.assertIn(FIELD_FEED_TITLE, SUPPORTED_FIELDS)
         self.assertIn(FIELD_FEED_CATEGORY_TITLE, SUPPORTED_FIELDS)
@@ -198,22 +199,175 @@ class TestGetEntryFieldValue(unittest.TestCase):
         entry_no_category = {'feed': {'title': 'Blog'}}
         result = get_entry_field_value(entry_no_category, FIELD_FEED_CATEGORY_TITLE)
         self.assertEqual(result, '')
+
+
+class TestMatchContentLength(unittest.TestCase):
+    """Tests for _match_content_length function"""
     
-    def test_get_content_min_length_field(self):
-        """Test getting content length field value"""
-        entry = {'content': '<p>' + 'test ' * 50 + '</p>'}
+    def test_gt_operator_true(self):
+        """Test gt: operator when content length > threshold"""
+        entry = {'content': '<p>test content</p>'}
         with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = get_entry_field_value(entry, FIELD_ENTRY_CONTENT_MIN_LENGTH)
-            self.assertEqual(result, '100')
+            result = _match_content_length(entry, "gt:50")
+            self.assertTrue(result)
     
-    def test_content_min_length_with_cache(self):
-        """Test content length uses cache"""
-        entry = {'content': '<p>test</p>', '_agent_cache': {'content_length': 75}}
-        with patch('core.rule_matcher.get_content_length', return_value=75) as mock:
-            result = get_entry_field_value(entry, FIELD_ENTRY_CONTENT_MIN_LENGTH)
-            self.assertEqual(result, '75')
-            # Should use cached value
-            mock.assert_called_once_with(entry)
+    def test_gt_operator_false(self):
+        """Test gt: operator when content length <= threshold"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=50):
+            result = _match_content_length(entry, "gt:100")
+            self.assertFalse(result)
+    
+    def test_gt_operator_equal(self):
+        """Test gt: operator when content length == threshold (should be false)"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "gt:100")
+            self.assertFalse(result)
+    
+    def test_ge_operator_true(self):
+        """Test ge: operator when content length >= threshold"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "ge:100")
+            self.assertTrue(result)
+    
+    def test_ge_operator_greater(self):
+        """Test ge: operator when content length > threshold"""
+        entry = {'content': '<p>test content</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=150):
+            result = _match_content_length(entry, "ge:100")
+            self.assertTrue(result)
+    
+    def test_ge_operator_false(self):
+        """Test ge: operator when content length < threshold"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=50):
+            result = _match_content_length(entry, "ge:100")
+            self.assertFalse(result)
+    
+    def test_lt_operator_true(self):
+        """Test lt: operator when content length < threshold"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=50):
+            result = _match_content_length(entry, "lt:100")
+            self.assertTrue(result)
+    
+    def test_lt_operator_false(self):
+        """Test lt: operator when content length >= threshold"""
+        entry = {'content': '<p>test content</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "lt:50")
+            self.assertFalse(result)
+    
+    def test_lt_operator_equal(self):
+        """Test lt: operator when content length == threshold (should be false)"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "lt:100")
+            self.assertFalse(result)
+    
+    def test_le_operator_true(self):
+        """Test le: operator when content length <= threshold"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "le:100")
+            self.assertTrue(result)
+    
+    def test_le_operator_less(self):
+        """Test le: operator when content length < threshold"""
+        entry = {'content': '<p>short</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=50):
+            result = _match_content_length(entry, "le:100")
+            self.assertTrue(result)
+    
+    def test_le_operator_false(self):
+        """Test le: operator when content length > threshold"""
+        entry = {'content': '<p>test content</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=150):
+            result = _match_content_length(entry, "le:100")
+            self.assertFalse(result)
+    
+    def test_eq_operator_true(self):
+        """Test eq: operator when content length == threshold"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "eq:100")
+            self.assertTrue(result)
+    
+    def test_eq_operator_false_greater(self):
+        """Test eq: operator when content length > threshold"""
+        entry = {'content': '<p>test content</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=150):
+            result = _match_content_length(entry, "eq:100")
+            self.assertFalse(result)
+    
+    def test_eq_operator_false_less(self):
+        """Test eq: operator when content length < threshold"""
+        entry = {'content': '<p>short</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=50):
+            result = _match_content_length(entry, "eq:100")
+            self.assertFalse(result)
+    
+    def test_between_operator_true(self):
+        """Test between: operator when content length is in range"""
+        entry = {'content': '<p>test content</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=75):
+            result = _match_content_length(entry, "between:50,100")
+            self.assertTrue(result)
+    
+    def test_between_operator_lower_bound(self):
+        """Test between: operator at lower bound (inclusive)"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=50):
+            result = _match_content_length(entry, "between:50,100")
+            self.assertTrue(result)
+    
+    def test_between_operator_upper_bound(self):
+        """Test between: operator at upper bound (inclusive)"""
+        entry = {'content': '<p>test content</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=100):
+            result = _match_content_length(entry, "between:50,100")
+            self.assertTrue(result)
+    
+    def test_between_operator_below_range(self):
+        """Test between: operator when content length is below range"""
+        entry = {'content': '<p>short</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=30):
+            result = _match_content_length(entry, "between:50,100")
+            self.assertFalse(result)
+    
+    def test_between_operator_above_range(self):
+        """Test between: operator when content length is above range"""
+        entry = {'content': '<p>' + 'long ' * 50 + '</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=150):
+            result = _match_content_length(entry, "between:50,100")
+            self.assertFalse(result)
+    
+    def test_between_with_spaces(self):
+        """Test between: operator handles spaces around numbers"""
+        entry = {'content': '<p>test</p>'}
+        with patch('core.rule_matcher.get_content_length', return_value=75):
+            result = _match_content_length(entry, "between: 50 , 100 ")
+            self.assertTrue(result)
+    
+    def test_invalid_operator(self):
+        """Test invalid operator returns False"""
+        entry = {'content': '<p>test</p>'}
+        result = _match_content_length(entry, "invalid:100")
+        self.assertFalse(result)
+    
+    def test_invalid_number_format(self):
+        """Test invalid number format returns False"""
+        entry = {'content': '<p>test</p>'}
+        result = _match_content_length(entry, "gt:not_a_number")
+        self.assertFalse(result)
+    
+    def test_between_missing_comma(self):
+        """Test between: without comma returns False"""
+        entry = {'content': '<p>test</p>'}
+        result = _match_content_length(entry, "between:50")
+        self.assertFalse(result)
 
 
 class TestMatchAnyRule(unittest.TestCase):
@@ -282,10 +436,10 @@ class TestMatchAnyRule(unittest.TestCase):
         result = _match_any_rule(self.entry, rules)
         self.assertTrue(result)
     
-    def test_content_min_length_matching(self):
-        """Test EntryContentMinLength matching"""
+    def test_content_length_matching(self):
+        """Test EntryContentLength matching"""
         with patch('core.rule_matcher.get_content_length', return_value=100):
-            rules = ["EntryContentMinLength=50"]
+            rules = ["EntryContentLength=gt:50"]
             result = _match_any_rule(self.entry, rules)
             self.assertTrue(result)
     
@@ -382,12 +536,12 @@ class TestMatchRules(unittest.TestCase):
         result = match_rules(self.entry, allow_rules, [])
         self.assertTrue(result)
     
-    def test_deny_rules_with_content_min_length(self):
-        """Test deny_rules with EntryContentMinLength"""
+    def test_deny_rules_with_content_length(self):
+        """Test deny_rules with EntryContentLength"""
         with patch('core.rule_matcher.get_content_length', return_value=100):
-            deny_rules = ["EntryContentMinLength=50"]
+            deny_rules = ["EntryContentLength=gt:50"]
             result = match_rules(self.entry, [], deny_rules)
-            self.assertFalse(result)  # Content >= 50, so denied
+            self.assertFalse(result)  # Content > 50, so denied
     
     def test_multiple_field_matching(self):
         """Test matching against multiple different fields"""
@@ -436,11 +590,11 @@ class TestRealWorldScenarios(unittest.TestCase):
             allow_rules = []
             deny_rules = [
                 "FeedSiteUrl=.*digest.*",
-                "EntryContentMinLength=100"
+                "EntryContentLength=gt:99"
             ]
             
             result = match_rules(entry, allow_rules, deny_rules)
-            self.assertFalse(result)  # Blocked by EntryContentMinLength
+            self.assertFalse(result)  # Blocked by EntryContentLength
     
     def test_filtering_spam_titles(self):
         """Test filtering out spam/ad titles"""

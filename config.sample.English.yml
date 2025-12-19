@@ -83,29 +83,35 @@ agents:
       <hr>
     
     # Rule-based filtering
-    # Rule format: FieldName=RegexPattern
+    # Rule format: FieldName=RegexPattern (or FieldName=Operator:Value for special fields)
     # Supported fields:
     #   - EntryTitle: Entry title
     #   - EntryURL: Entry URL
     #   - EntryContent: Entry content (HTML stripped)
     #   - EntryAuthor: Entry author
     #   - EntryTag: Entry tags (comma-separated)
-    #   - EntryContentMinLength: Minimum content length (numeric comparison)
+    #   - EntryContentLength: Content length comparison (operators: gt, ge, lt, le, eq, between)
     #   - FeedSiteUrl: Feed site URL
     #   - FeedTitle: Feed title
     #   - FeedCategoryTitle: Feed category title
     #   - NeverMatch: Special placeholder that never matches (value after = can be any comment)
     #
+    # EntryContentLength operators:
+    #   gt:N  (>N), ge:N (>=N), lt:N (<N), le:N (<=N), eq:N (==N), between:N,M (N<=x<=M)
+    #
     # Use (?i) prefix for case-insensitive matching
     
     allow_rules: []  # Keep rules (entry must match at least one)
     deny_rules:      # Block rules (entry must NOT match any)
-      - FeedSiteUrl=.*digest_url.*           # Exclude digest feed using variable reference
-      - EntryContentMinLength=100            # Minimum 100 tokens
+      - FeedSiteUrl=.*digest_url.*              # Exclude digest feed using variable reference
+      - EntryContentLength=lt:100               # Block entries with < 100 tokens
+      # - EntryContentLength=gt:500             # Only allow entries with > 500 tokens
+      # - EntryContentLength=ge:100             # Only allow entries with >= 100 tokens
+      # - EntryContentLength=between:100,500    # Only allow entries with 100-500 tokens
       # - EntryTitle=(?i)\b(save|get)\s+\$\d{2,5}\b  # Block "Save $50", "Get $100" in title
       # - EntryTitle=(?i)\$\d{2,5}\s+(off|discount)  # Block "$50 off" patterns
-      # - FeedSiteUrl=https://spam\.com              # Block specific site
-      # - FeedCategoryTitle=(?i)ads                  # Block specific category
+      # - FeedSiteUrl=https://spam\.com         # Block specific site
+      # - FeedCategoryTitle=(?i)ads             # Block specific category
     
   translate:
     prompt: |-

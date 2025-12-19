@@ -17,7 +17,7 @@ FIELD_ENTRY_URL = 'EntryURL'
 FIELD_ENTRY_CONTENT = 'EntryContent'
 FIELD_ENTRY_AUTHOR = 'EntryAuthor'
 FIELD_ENTRY_TAG = 'EntryTag'
-FIELD_ENTRY_CONTENT_MIN_LENGTH = 'EntryContentMinLength'
+FIELD_ENTRY_CONTENT_LENGTH = 'EntryContentLength'
 FIELD_FEED_SITE_URL = 'FeedSiteUrl'
 FIELD_FEED_TITLE = 'FeedTitle'
 FIELD_FEED_CATEGORY_TITLE = 'FeedCategoryTitle'
@@ -29,7 +29,7 @@ SUPPORTED_FIELDS = {
     FIELD_ENTRY_CONTENT,
     FIELD_ENTRY_AUTHOR,
     FIELD_ENTRY_TAG,
-    FIELD_ENTRY_CONTENT_MIN_LENGTH,
+    FIELD_ENTRY_CONTENT_LENGTH,
     FIELD_FEED_SITE_URL,
     FIELD_FEED_TITLE,
     FIELD_FEED_CATEGORY_TITLE,
@@ -99,9 +99,6 @@ def get_entry_field_value(entry: Dict[str, Any], field_name: str) -> str:
     elif field_name == FIELD_ENTRY_TAG:
         tags = entry.get('tags', [])
         return ','.join(tags) if tags else ''
-    
-    elif field_name == FIELD_ENTRY_CONTENT_MIN_LENGTH:
-        return str(get_content_length(entry))
 
     elif field_name == FIELD_FEED_SITE_URL:
         return entry.get('feed', {}).get('site_url', '')
@@ -113,6 +110,75 @@ def get_entry_field_value(entry: Dict[str, Any], field_name: str) -> str:
         return entry.get('feed', {}).get('category', {}).get('title', '')
     
     return ''
+
+
+def _match_content_length(entry: Dict[str, Any], operator: str) -> bool:
+    """
+    Check if entry content length matches the operator condition.
+    
+    Supports standard comparison operators:
+    - gt:N        - length > N (greater than)
+    - ge:N        - length >= N (greater or equal)
+    - lt:N        - length < N (less than)
+    - le:N        - length <= N (less or equal)
+    - eq:N        - length == N (equal)
+    - between:N,M - N <= length <= M (inclusive range)
+    
+    Args:
+        entry: Entry dictionary
+        operator: Operator string (e.g., "gt:100", "between:50,200")
+        
+    Returns:
+        True if content length matches the condition
+        
+    Examples:
+        >>> _match_content_length(entry, "gt:100")  # length > 100
+        >>> _match_content_length(entry, "ge:100")  # length >= 100
+        >>> _match_content_length(entry, "lt:50")  # length < 50
+        >>> _match_content_length(entry, "le:50")  # length <= 50
+        >>> _match_content_length(entry, "eq:100")  # length == 100
+        >>> _match_content_length(entry, "between:50,200")  # 50 <= length <= 200
+    """
+    content_length = get_content_length(entry)
+    
+    try:
+        if operator.startswith('gt:'):
+            threshold = int(operator[3:])
+            return content_length > threshold
+        
+        elif operator.startswith('ge:'):
+            threshold = int(operator[3:])
+            return content_length >= threshold
+        
+        elif operator.startswith('lt:'):
+            threshold = int(operator[3:])
+            return content_length < threshold
+        
+        elif operator.startswith('le:'):
+            threshold = int(operator[3:])
+            return content_length <= threshold
+        
+        elif operator.startswith('eq:'):
+            threshold = int(operator[3:])
+            return content_length == threshold
+        
+        elif operator.startswith('between:'):
+            range_str = operator[8:]
+            if ',' not in range_str:
+                logger.warning(f"Invalid between operator format: {operator}")
+                return False
+            min_val, max_val = range_str.split(',', 1)
+            min_length = int(min_val.strip())
+            max_length = int(max_val.strip())
+            return min_length <= content_length <= max_length
+        
+        else:
+            logger.warning(f"Unknown EntryContentLength operator: {operator}")
+            return False
+            
+    except (ValueError, IndexError) as e:
+        logger.warning(f"Invalid EntryContentLength operator '{operator}': {e}")
+        return False
 
 
 def _match_any_rule(entry: Dict[str, Any], rules: List[str]) -> bool:
@@ -137,9 +203,9 @@ def _match_any_rule(entry: Dict[str, Any], rules: List[str]) -> bool:
         if field_name == FIELD_NEVER_MATCH:
             continue
         
-        if field_name == FIELD_ENTRY_CONTENT_MIN_LENGTH:
-            min_length = int(pattern)
-            if get_content_length(entry) >= min_length:
+        # Special handling for EntryContentLength with operators
+        if field_name == FIELD_ENTRY_CONTENT_LENGTH:
+            if _match_content_length(entry, pattern):
                 return True
             continue
         

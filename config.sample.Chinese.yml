@@ -83,28 +83,34 @@ agents:
       <hr>
     
     # 规则过滤配置
-    # 规则格式: FieldName=RegexPattern
+    # 规则格式: FieldName=RegexPattern (特殊字段可使用 FieldName=Operator:Value)
     # 支持的字段:
     #   - EntryTitle: 条目标题
     #   - EntryURL: 条目URL
     #   - EntryContent: 条目内容 (HTML已清理)
     #   - EntryAuthor: 条目作者
     #   - EntryTag: 条目标签 (逗号分隔)
-    #   - EntryContentMinLength: 最小内容长度 (数字比较)
+    #   - EntryContentLength: 内容长度比较 (运算符: gt, ge, lt, le, eq, between)
     #   - FeedSiteUrl: 订阅源站点URL
     #   - FeedTitle: 订阅源标题
     #   - FeedCategoryTitle: 订阅源分类标题
     #   - NeverMatch: 永不匹配的占位符 (等号后可填任意说明文字)
     #
+    # EntryContentLength 运算符:
+    #   gt:N (>N), ge:N (>=N), lt:N (<N), le:N (<=N), eq:N (==N), between:N,M (N<=x<=M)
+    #
     # 使用 (?i) 前缀进行不区分大小写的匹配
     
     allow_rules: []  # 保留规则 (条目必须匹配至少一条规则)
     deny_rules:      # 屏蔽规则 (条目不得匹配任何规则)
-      - FeedSiteUrl=.*digest_url.*       # 使用变量引用排除摘要订阅源
-      - EntryContentMinLength=100        # 内容长度至少100 tokens
-      # - EntryTitle=广告|推广        # 排除包含"广告"或"推广"的标题
-      # - FeedSiteUrl=https://spam\.com  # 排除特定站点
-      # - FeedCategoryTitle=(?i)spam     # 排除特定分类
+      - FeedSiteUrl=.*digest_url.*            # 使用变量引用排除摘要订阅源
+      - EntryContentLength=lt:100             # 屏蔽少于100 tokens的条目
+      # - EntryContentLength=gt:500           # 仅保留超过500 tokens的条目
+      # - EntryContentLength=ge:100           # 仅保留大于等于100 tokens的条目
+      # - EntryContentLength=between:100,500  # 仅保留100-500 tokens的条目
+      # - EntryTitle=广告|推广              # 排除包含"广告"或"推广"的标题
+      # - FeedSiteUrl=https://spam\.com       # 排除特定站点
+      # - FeedCategoryTitle=(?i)spam          # 排除特定分类
     
   translate:
     prompt: |-
