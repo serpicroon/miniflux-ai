@@ -1,6 +1,9 @@
 import sys
 import inspect
+from typing import Dict
 from yaml import safe_load
+
+from common.models import Agent
 
 class Config:
     def __init__(self):
@@ -27,41 +30,76 @@ class Config:
         self.digest_schedule = self._get_config_value('digest', 'schedule', None)
         self.digest_prompts = self._get_config_value('digest', 'prompts', None)
 
-        self.agents = self.c.get('agents', {})
+        self.agents = self._load_agents()
         
         self._validate_config_compatibility()
 
     def _get_config_value(self, section, key, default=None):
         return self.c.get(section, {}).get(key, default)
     
-    def _validate_config_compatibility(self):
+    def _load_agents(self) -> Dict[str, Agent]:
         """
-        Validate config file version compatibility.
+        Load agent configurations from YAML.
+        
+        Returns:
+            Dictionary mapping agent names to Agent instances
         """
-        if not self.agents:
-            return
+        agents_config = self.c.get('agents', {})
+        agents = {}
         
-        outdated_agents = []
-        
-        for agent_name, agent_config in self.agents.items():
+        for agent_name, agent_config in agents_config.items():
             if not isinstance(agent_config, dict):
                 continue
             
-            if 'title' in agent_config and 'style_block' in agent_config:
-                outdated_agents.append(agent_name)
+            agents[agent_name] = Agent(
+                prompt=agent_config.get('prompt', ''),
+                template=agent_config.get('template', ''),
+                allow_rules=agent_config.get('allow_rules', []),
+                deny_rules=agent_config.get('deny_rules', [])
+            )
         
-        if outdated_agents:
+        return agents
+    
+    def _validate_config_compatibility(self):
+        """
+        Validate config file version compatibility.
+        Check for deprecated fields and outdated formats.
+        """
+        if not self.c.get('agents'):
+            return
+        
+        agents_config = self.c.get('agents', {})
+        deprecated_field_agents = []
+        
+        for agent_name, agent_config in agents_config.items():
+            if not isinstance(agent_config, dict):
+                continue
+            
+            # Check for all deprecated fields
+            deprecated_fields = []
+            if 'title' in agent_config and 'style_block' in agent_config:
+                deprecated_fields.extend(['title', 'style_block'])
+            if 'allow_list' in agent_config:
+                deprecated_fields.append('allow_list')
+            if 'deny_list' in agent_config:
+                deprecated_fields.append('deny_list')
+            if 'min_content_length' in agent_config:
+                deprecated_fields.append('min_content_length')
+            
+            if deprecated_fields:
+                deprecated_field_agents.append(f"{agent_name} ({', '.join(deprecated_fields)})")
+        
+        # Report errors
+        if deprecated_field_agents:
+            agents_list = '\n'.join(f"  - {agent}" for agent in deprecated_field_agents)
             error_message = inspect.cleandoc(f"""
             ⚠️  Config Incompatibility Detected!
             
-            Your config.yml is using an outdated format that is no longer supported.
-            This is a breaking change and requires configuration file update.
+            Your config.yml uses deprecated fields that are no longer supported.
+            Detected:
+            {agents_list}
             
-            Detected outdated agents: {', '.join(outdated_agents)}
-            
-            Please update your config.yml file to the new format.
-            
-            For migration guide and examples, please visit:
+            For migration guide and examples, visit:
             https://github.com/serpicroon/miniflux-ai
             """)
             

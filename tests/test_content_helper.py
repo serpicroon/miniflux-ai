@@ -20,119 +20,119 @@ class TestGetContentLength(unittest.TestCase):
     
     def test_simple_chinese_text(self):
         """Test token counting for simple Chinese text"""
-        html = "<p>这是一篇测试文章</p>"
-        length = get_content_length(html)
+        entry = {'content': "<p>这是一篇测试文章</p>"}
+        length = get_content_length(entry)
         # Should be around 8-10 tokens for 8 Chinese characters
         self.assertGreaterEqual(length, 6)
         self.assertLessEqual(length, 12)
     
     def test_simple_english_text(self):
         """Test token counting for simple English text"""
-        html = "<p>This is a test article</p>"
-        length = get_content_length(html)
+        entry = {'content': "<p>This is a test article</p>"}
+        length = get_content_length(entry)
         # Should be around 6-8 tokens for 5 words
         self.assertGreaterEqual(length, 4)
         self.assertLessEqual(length, 10)
     
     def test_mixed_chinese_english(self):
         """Test token counting for mixed Chinese and English"""
-        html = "<p>这是 a test 文章</p>"
-        length = get_content_length(html)
+        entry = {'content': "<p>这是 a test 文章</p>"}
+        length = get_content_length(entry)
         self.assertGreater(length, 0)
     
     def test_empty_html(self):
         """Test empty HTML returns 0 tokens"""
-        html = ""
-        length = get_content_length(html)
+        entry = {'content': ""}
+        length = get_content_length(entry)
         self.assertEqual(length, 0)
     
     def test_html_with_only_whitespace(self):
         """Test HTML with only whitespace returns 0 tokens"""
-        html = "<p>   \n\t   </p>"
-        length = get_content_length(html)
+        entry = {'content': "<p>   \n\t   </p>"}
+        length = get_content_length(entry)
         self.assertEqual(length, 0)
     
     def test_removes_script_tags(self):
         """Test that script tags are removed before counting"""
-        html = """
+        entry = {'content': """
         <script>console.log('This should be ignored');</script>
         <p>Valid content</p>
-        """
-        length = get_content_length(html)
+        """}
+        length = get_content_length(entry)
         # Should only count "Valid content", not the script
         self.assertGreaterEqual(length, 1)
         self.assertLessEqual(length, 4)
     
     def test_removes_style_tags(self):
         """Test that style tags are removed before counting"""
-        html = """
+        entry = {'content': """
         <style>body { color: red; }</style>
         <p>Valid content</p>
-        """
-        length = get_content_length(html)
+        """}
+        length = get_content_length(entry)
         self.assertGreaterEqual(length, 1)
         self.assertLessEqual(length, 4)
     
     def test_removes_noscript_tags(self):
         """Test that noscript tags are removed before counting"""
-        html = """
+        entry = {'content': """
         <noscript>Please enable JavaScript</noscript>
         <p>Valid content</p>
-        """
-        length = get_content_length(html)
+        """}
+        length = get_content_length(entry)
         self.assertGreaterEqual(length, 1)
         self.assertLessEqual(length, 4)
     
     def test_removes_iframe_tags(self):
         """Test that iframe tags are removed before counting"""
-        html = """
+        entry = {'content': """
         <iframe src="https://example.com"></iframe>
         <p>Valid content</p>
-        """
-        length = get_content_length(html)
+        """}
+        length = get_content_length(entry)
         self.assertGreaterEqual(length, 1)
         self.assertLessEqual(length, 4)
     
     def test_multiple_paragraphs(self):
         """Test counting tokens across multiple paragraphs"""
-        html = """
+        entry = {'content': """
         <p>First paragraph</p>
         <p>Second paragraph</p>
         <p>Third paragraph</p>
-        """
-        length = get_content_length(html)
+        """}
+        length = get_content_length(entry)
         self.assertGreater(length, 0)
     
     def test_nested_html_tags(self):
         """Test counting with nested HTML tags"""
-        html = "<div><p>Nested <strong>content</strong> here</p></div>"
-        length = get_content_length(html)
+        entry = {'content': "<div><p>Nested <strong>content</strong> here</p></div>"}
+        length = get_content_length(entry)
         self.assertGreaterEqual(length, 2)
         self.assertLessEqual(length, 6)
     
     def test_html_entities(self):
         """Test that HTML entities are decoded"""
-        html = "<p>&lt;Hello&gt; &amp; &quot;World&quot;</p>"
-        length = get_content_length(html)
+        entry = {'content': "<p>&lt;Hello&gt; &amp; &quot;World&quot;</p>"}
+        length = get_content_length(entry)
         self.assertGreater(length, 0)
     
     def test_image_gallery(self):
         """Test filtering out image gallery content"""
-        html = """
+        entry = {'content': """
         <img src="1.jpg">
         <img src="2.jpg">
         <img src="3.jpg">
         <p>图集</p>
-        """
-        length = get_content_length(html)
+        """}
+        length = get_content_length(entry)
         # Should only count "图集" (2 chars ≈ 2 tokens)
         self.assertGreaterEqual(length, 1)
         self.assertLessEqual(length, 4)
     
     def test_preserves_spaces_between_words(self):
         """Test that spaces are preserved for proper tokenization"""
-        html = "<p>Word1 Word2 Word3</p>"
-        length = get_content_length(html)
+        entry = {'content': "<p>Word1 Word2 Word3</p>"}
+        length = get_content_length(entry)
         # With spaces: proper word boundaries
         self.assertGreaterEqual(length, 2)
         self.assertLessEqual(length, 6)

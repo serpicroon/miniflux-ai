@@ -50,7 +50,9 @@ agents:
   analyst:
     prompt: "Analyze this article for potential stock market impacts. Bullish or Bearish?"
     template: '<div class="insight-box">📈 <strong>Market Impact:</strong> {content}</div>'
-    allow_list: ["*bloomberg.com*", "*techcrunch.com*"]
+    allow_rules:
+      - FeedSiteUrl=.*bloomberg\.com.*
+      - FeedSiteUrl=.*techcrunch\.com.*
 ```
 
 **Example: The "TL;DR" Agent**
@@ -104,7 +106,7 @@ Instead of reading a long wiki, please refer to the extensively commented sample
 - **[config.sample.Chinese.yml](config.sample.Chinese.yml)** - Chinese version with localized prompts.
 
 **Key capabilities you can tweak:**
-- **Per-Agent Filters**: Only run "Translate" on foreign sites? Easy.
+- **Rule-Based Filtering**: Control exactly which entries each agent processes using powerful regex rules.
 - **Digest Schedule**: Morning coffee or evening review? You decide.
 - **HTML Templates**: Customize exactly how the AI output looks in your reader.
 
@@ -126,11 +128,29 @@ Once running, the system will **automatically create** a new feed in your Minifl
 ## 🔧 Troubleshooting
 
 <details>
-<summary><strong>Filters (Allow/Deny lists) not working?</strong></summary>
+<summary><strong>Rule-based filters not working?</strong></summary>
 
-The filters use **Glob patterns** (like wildcards), NOT Regex.
-*   ✅ `*github.com*` (Correct)
-*   ❌ `.*github\.com.*` (Incorrect)
+The filtering system uses **Regex patterns** with Miniflux-style rules.
+
+**Rule Format**: `FieldName=RegexPattern`
+
+**Supported Fields**:
+- Entry fields: `EntryTitle`, `EntryURL`, `EntryContent`, `EntryAuthor`, `EntryTag`
+- Feed fields: `FeedSiteUrl`, `FeedTitle`, `FeedCategoryTitle`
+- Special: `EntryContentMinLength` (numeric), `NeverMatch` (placeholder)
+
+**Examples**:
+*   ✅ `FeedSiteUrl=.*github\.com.*` (Match any github.com URL)
+*   ✅ `EntryTitle=(?i)python` (Case-insensitive title match)
+*   ✅ `EntryContentMinLength=100` (Minimum 100 tokens)
+*   ❌ `*github.com*` (Old glob pattern - no longer supported)
+
+**Tips**:
+- Use `(?i)` prefix for case-insensitive matching
+- Remember to escape special regex characters (e.g., `\.` for literal dot)
+- Rules are evaluated in order; first match wins
+
+See [config.sample.English.yml](config.sample.English.yml) for more examples.
 </details>
 
 <details>

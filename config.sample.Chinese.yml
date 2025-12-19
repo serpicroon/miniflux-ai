@@ -81,13 +81,30 @@ agents:
         </div>
       </aside>
       <hr>
-    # 最小内容长度（tokens），使用 tiktoken 计数
-    min_content_length: 100
-    deny_list:
-      - *digest_url  # 排除摘要订阅源
-      # - https://example.com/       # 精确 site_url 匹配
-      # - https://example.com/*      # example.com 下的所有页面
-    allow_list: []  # 仅处理指定URL (空数组 = 处理所有)
+    
+    # 规则过滤配置
+    # 规则格式: FieldName=RegexPattern
+    # 支持的字段:
+    #   - EntryTitle: 条目标题
+    #   - EntryURL: 条目URL
+    #   - EntryContent: 条目内容 (HTML已清理)
+    #   - EntryAuthor: 条目作者
+    #   - EntryTag: 条目标签 (逗号分隔)
+    #   - EntryContentMinLength: 最小内容长度 (数字比较)
+    #   - FeedSiteUrl: 订阅源站点URL
+    #   - FeedTitle: 订阅源标题
+    #   - FeedCategoryTitle: 订阅源分类标题
+    #   - NeverMatch: 永不匹配的占位符 (等号后可填任意说明文字)
+    #
+    # 使用 (?i) 前缀进行不区分大小写的匹配
+    
+    allow_rules: []  # 保留规则 (条目必须匹配至少一条规则)
+    deny_rules:      # 屏蔽规则 (条目不得匹配任何规则)
+      - FeedSiteUrl=.*digest_url.*       # 使用变量引用排除摘要订阅源
+      - EntryContentMinLength=100        # 内容长度至少100 tokens
+      # - EntryTitle=广告|推广        # 排除包含"广告"或"推广"的标题
+      # - FeedSiteUrl=https://spam\.com  # 排除特定站点
+      # - FeedCategoryTitle=(?i)spam     # 排除特定分类
     
   translate:
     prompt: |-
@@ -102,9 +119,14 @@ agents:
         </div>
       </section>
       <hr>
-    deny_list: []    # 排除翻译的URL列表
-    allow_list:      # 仅翻译指定URL (空数组 = 处理所有)
-      - PLACEHOLDER  # 保留此项以防止处理所有条目，在下方添加需要翻译的URL
-      # 警告：如果 deny_list 和 allow_list 都为空，将处理所有条目
-      # 这可能消耗大量 token。建议在 allow_list 中添加URL来限制处理范围。
-      # - *foreign.example.com*          # 任何包含 foreign.example.com 的URL
+    
+    # 翻译规则配置
+    # 警告: 如果 allow_rules 和 deny_rules 都为空，将处理所有条目
+    # 这可能消耗大量 token。建议使用 allow_rules 限制处理范围。
+    
+    allow_rules:     # 仅翻译匹配的条目
+      - NeverMatch=  # 永不匹配的占位符
+      # - FeedSiteUrl=https://example\.com.*   # 翻译特定站点的所有内容
+      # - FeedTitle=(?i).*tech.*news.*         # 翻译标题包含"tech"和"news"的源
+      # - EntryURL=.*foreign\.example\.com.*   # 翻译特定域名的内容
+    deny_rules: []   # 排除翻译的规则

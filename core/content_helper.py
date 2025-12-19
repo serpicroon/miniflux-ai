@@ -22,31 +22,86 @@ _MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugin
 
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
-def get_content_length(html_content: str) -> int:
+# Internal cache key for storing computed values in entry dict
+_CACHE_KEY = '_agent_cache'
+
+
+def _get_cache(entry: Dict) -> Dict:
+    """Get or create cache dict for entry (internal use only)"""
+    if _CACHE_KEY not in entry:
+        entry[_CACHE_KEY] = {}
+    return entry[_CACHE_KEY]
+
+
+def get_clean_content(html_content: str) -> str:
     """
-    Get the token count of content using tiktoken (OpenAI's tokenizer).
+    Get clean content from HTML content.
     
-    This function uses tiktoken to count tokens, which provides:
-    - Fair counting across different languages (CJK and Latin scripts)
-    - Alignment with LLM processing units
-    - Natural word boundary awareness (spaces preserved)
-
     Args:
-        html_content: HTML formatted content.
-
+        html_content: HTML formatted content
+        
     Returns:
-        Number of tokens in the content.
+        Clean content
     """
     soup = BeautifulSoup(html_content, 'lxml')
     
     # Remove invisible content: script, style, noscript, iframe, etc.
     for tag in soup(['script', 'style', 'noscript', 'iframe']):
         tag.decompose()
+    
+    return soup.get_text(separator=' ', strip=True)
 
-    content_text = soup.get_text(separator=' ', strip=True)
-    content_text = ' '.join(content_text.split())
-    tokens = _TIKTOKEN_ENCODER.encode(content_text)
-    return len(tokens)
+
+def get_content_text(entry: Dict) -> str:
+    """
+    Get plain text content from entry with caching.
+    
+    This function strips HTML tags and caches the result in the entry
+    to avoid repeated parsing when multiple rules check the same content.
+    
+    Args:
+        entry: Entry dictionary (may be modified to add cache)
+        
+    Returns:
+        Plain text content with HTML tags stripped
+    """
+    cache = _get_cache(entry)
+    cache_key = 'content_text'
+    
+    if cache_key not in cache:
+        html_content = entry.get('content', '')
+        cache[cache_key] = get_clean_content(html_content)
+    
+    return cache[cache_key]
+
+
+def get_content_length(entry: Dict) -> int:
+    """
+    Get the token count of entry content using tiktoken (OpenAI's tokenizer).
+    
+    This function uses tiktoken to count tokens, which provides:
+    - Fair counting across different languages (CJK and Latin scripts)
+    - Alignment with LLM processing units
+    - Natural word boundary awareness (spaces preserved)
+    
+    The result is cached in the entry to avoid repeated tokenization.
+
+    Args:
+        entry: Entry dictionary (may be modified to add cache)
+
+    Returns:
+        Number of tokens in the content.
+    """
+    cache = _get_cache(entry)
+    cache_key = 'content_length'
+    
+    if cache_key not in cache:
+        content_text = get_content_text(entry)
+        content_text = ' '.join(content_text.split())
+        tokens = _TIKTOKEN_ENCODER.encode(content_text)
+        cache[cache_key] = len(tokens)
+    
+    return cache[cache_key]
 
 
 def to_markdown(content: str) -> str:

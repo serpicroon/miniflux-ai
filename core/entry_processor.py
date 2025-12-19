@@ -1,11 +1,13 @@
 import traceback
+import threading
 from typing import Dict, Any
+from cachetools import TTLCache
 
 from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
 from common import config
-from common.models import AgentResult
+from common.models import AgentResult, Agent
 from core.digest_generator import save_summary
-from core.entry_filter import filter_entry, filter_entry_by_agent
+from core.rule_matcher import match_rules
 from core.llm_client import get_completion
 from core.miniflux_client import get_miniflux_client
 from core.content_helper import (
@@ -14,6 +16,10 @@ from core.content_helper import (
     parse_entry_content, 
     build_ordered_content
 )
+
+# Entry processing cache to avoid duplicate processing
+_ENTRY_CACHE_LOCK = threading.Lock()
+_ENTRY_CACHE = TTLCache[int, bool](maxsize=1000, ttl=300)
 
 
 def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
@@ -64,59 +70,67 @@ def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
         raise
 
 
-def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Any]) -> Dict[str, AgentResult]:
+def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Agent]) -> Dict[str, AgentResult]:
     """
     Process entry through all applicable agents
     
     Args:
         entry: Entry dictionary to process
-        agents: Dictionary of agent_name: agent_config
+        agents: Dictionary of agent_name: Agent dataclass
         
     Returns:
         Dictionary of agent_name: agent_result
     """
-    if not agents or not filter_entry(entry):
+    if not agents:
         return {}
+    
+    # Check if entry was already processed (cache check)
+    entry_id = entry['id']
+    with _ENTRY_CACHE_LOCK:
+        if entry_id in _ENTRY_CACHE:
+            log_entry_debug(entry, message="Entry already processed (cache hit), skipping")
+            return {}
+        _ENTRY_CACHE[entry_id] = True
 
     log_entry_debug(entry, message=f"Processing entry with agents: {list(agents.keys())}")
     log_entry_debug(entry, message="Processing entry content", include_title=False, include_content=True)
 
     agent_results: Dict[str, AgentResult] = {}
     # config.agents is ordered, required Python 3.7+
-    for agent_name, agent_config in agents.items():
-        agent_results[agent_name] = _process_with_single_agent((agent_name, agent_config), entry)
+    for agent_name, agent in agents.items():
+        agent_results[agent_name] = _process_with_single_agent(agent_name, agent, entry)
             
     return agent_results
 
 
-def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> AgentResult:
+def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, Any]) -> AgentResult:
     """
     Process entry with a single agent
     
     Args:
-        agent: Tuple of (agent_name, agent_config)
+        agent_name: Name of the agent
+        agent: Agent dataclass instance
         entry: Entry dictionary to process
         
     Returns:
         AgentResult with status and content/error
     """
-    agent_name, agent_config = agent
-
-    if not filter_entry_by_agent(agent, entry):
-        log_entry_debug(entry, agent_name=agent_name, message="Filtered out")
+    # Check if entry matches agent's rules
+    if not match_rules(entry, agent.allow_rules, agent.deny_rules):
+        log_entry_debug(entry, agent_name=agent_name, message="Filtered out by rules")
         return AgentResult.filtered()
 
     log_entry_debug(entry, agent_name=agent_name, message="Starting processing")
     
     try:
-        agent_content = _get_agent_content(agent, entry)
+        agent_content = _get_agent_content(agent_name, agent, entry)
         log_entry_info(entry, agent_name=agent_name, message=f'Content: {agent_content}', include_title=True)
 
         if config.digest_schedule and agent_name == 'summary':
             # save summary to file for AI digest feature
             save_summary(entry, agent_content)
 
-        formatted_content = _format_agent_content(agent_config, agent_content)
+        formatted_content = _format_agent_content(agent, agent_content)
         log_entry_debug(entry, agent_name=agent_name, message=f"Formatted content: {formatted_content}", include_title=True)
         
         return AgentResult.success(formatted_content)
@@ -129,22 +143,22 @@ def _process_with_single_agent(agent: tuple, entry: Dict[str, Any]) -> AgentResu
         return AgentResult.error(e, message=str(e))
 
 
-def _get_agent_content(agent: tuple, entry: Dict[str, Any]) -> str:
+def _get_agent_content(agent_name: str, agent: Agent, entry: Dict[str, Any]) -> str:
     """
     Get processed content from LLM for a specific agent
     
     Args:
-        agent: Tuple of (agent_name, agent_config)
+        agent_name: Name of the agent
+        agent: Agent dataclass instance
         entry: Entry dictionary to process
         
     Returns:
         str: Processed content from LLM
     """
-    agent_name, agent_config = agent
     title = entry['title']
     content_markdown = to_markdown(entry['content'])
 
-    prompt_template = agent_config['prompt']
+    prompt_template = agent.prompt
     prompt = prompt_template.replace('{title}', title).replace('{content}', content_markdown)
 
     if '{content}' in prompt_template:
@@ -162,18 +176,18 @@ def _get_agent_content(agent: tuple, entry: Dict[str, Any]) -> str:
     return agent_content
 
 
-def _format_agent_content(agent_config: Dict[str, Any], agent_content: str) -> str:
+def _format_agent_content(agent: Agent, agent_content: str) -> str:
     """
     Format agent content based on style configuration
     
     Args:
-        agent_config: Agent configuration dictionary
+        agent: Agent dataclass instance
         agent_content: Raw content from LLM
         
     Returns:
         Formatted content string
     """
-    template = agent_config.get('template', '')
+    template = agent.template
     html_content = to_html(agent_content)
     
     if template:
