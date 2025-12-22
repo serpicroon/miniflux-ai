@@ -98,7 +98,7 @@ def get_content_length(entry: Dict) -> int:
     if cache_key not in cache:
         content_text = get_content_text(entry)
         content_text = ' '.join(content_text.split())
-        tokens = _TIKTOKEN_ENCODER.encode(content_text)
+        tokens = _TIKTOKEN_ENCODER.encode(content_text, disallowed_special=())
         cache[cache_key] = len(tokens)
     
     return cache[cache_key]
