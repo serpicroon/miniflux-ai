@@ -19,7 +19,7 @@ llm:
 
 digest:
   # RSS 订阅源生成的服务地址 (Docker Compose 环境使用容器名)
-  url: &digest_url http://miniflux-ai
+  url: http://miniflux-ai
 
   # 在 Miniflux 中显示的订阅源名称 (可选，有默认值)
   # name: "Minifluxᴬᴵ Digest for you"
@@ -98,14 +98,14 @@ agents:
     #
     # 使用 (?i) 前缀进行不区分大小写的匹配
     
-    allow_rules: []  # 保留规则 (条目必须匹配至少一条规则)
-    deny_rules:      # 屏蔽规则 (条目不得匹配任何规则)
-      - FeedSiteUrl=.*digest_url.*            # 使用变量引用排除摘要订阅源
+    allow_rules: []
+    deny_rules:
+      - FeedSiteUrl=http://miniflux-ai        # 排除摘要订阅源
       - EntryContentLength=lt:100             # 屏蔽少于100 tokens的条目
       # - EntryContentLength=gt:500           # 仅保留超过500 tokens的条目
       # - EntryContentLength=ge:100           # 仅保留大于等于100 tokens的条目
       # - EntryContentLength=between:100,500  # 仅保留100-500 tokens的条目
-      # - EntryTitle=广告|推广              # 排除包含"广告"或"推广"的标题
+      # - EntryTitle=广告|推广                 # 排除包含"广告"或"推广"的标题
       # - FeedSiteUrl=https://spam\.com       # 排除特定站点
       # - FeedCategoryTitle=(?i)spam          # 排除特定分类
     

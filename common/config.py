@@ -92,16 +92,16 @@ class Config:
         # Report errors
         if deprecated_field_agents:
             agents_list = '\n'.join(f"  - {agent}" for agent in deprecated_field_agents)
-            error_message = inspect.cleandoc(f"""
-            ⚠️  Config Incompatibility Detected!
-            
-            Your config.yml uses deprecated fields that are no longer supported.
-            Detected:
-            {agents_list}
-            
-            For migration guide and examples, visit:
-            https://github.com/serpicroon/miniflux-ai
-            """)
+            error_message = (
+                "⚠️  Config Incompatibility Detected!\n"
+                "\n"
+                "Your config.yml uses deprecated fields that are no longer supported.\n"
+                "Detected:\n"
+                f"{agents_list}\n"
+                "\n"
+                "For migration guide and examples, visit:\n"
+                "https://github.com/serpicroon/miniflux-ai"
+            )
             
             print(error_message)
             sys.exit(1)

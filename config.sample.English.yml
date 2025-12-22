@@ -19,7 +19,7 @@ llm:
 
 digest:
   # Service URL for RSS feed generation (use container name for Docker Compose)
-  url: &digest_url http://miniflux-ai
+  url: http://miniflux-ai
 
   # Feed name displayed in Miniflux (optional, has default value)
   # name: "Minifluxᴬᴵ Digest for you"
@@ -98,9 +98,9 @@ agents:
     #
     # Use (?i) prefix for case-insensitive matching
     
-    allow_rules: []  # Keep rules (entry must match at least one)
-    deny_rules:      # Block rules (entry must NOT match any)
-      - FeedSiteUrl=.*digest_url.*              # Exclude digest feed using variable reference
+    allow_rules: []
+    deny_rules:
+      - FeedSiteUrl=http://miniflux-ai          # Exclude digest feed
       - EntryContentLength=lt:100               # Block entries with < 100 tokens
       # - EntryContentLength=gt:500             # Only allow entries with > 500 tokens
       # - EntryContentLength=ge:100             # Only allow entries with >= 100 tokens
