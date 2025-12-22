@@ -8,7 +8,7 @@ from unittest.mock import patch
 from core.rule_matcher import (
     parse_rule,
     get_entry_field_value,
-    _match_content_length,
+    _match_numeric_operator,
     _match_any_rule,
     match_rules,
     FIELD_ENTRY_TITLE,
@@ -201,172 +201,127 @@ class TestGetEntryFieldValue(unittest.TestCase):
         self.assertEqual(result, '')
 
 
-class TestMatchContentLength(unittest.TestCase):
-    """Tests for _match_content_length function"""
+class TestMatchNumericOperator(unittest.TestCase):
+    """Tests for _match_numeric_operator function - generic numeric comparison"""
     
     def test_gt_operator_true(self):
-        """Test gt: operator when content length > threshold"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "gt:50")
-            self.assertTrue(result)
+        """Test gt: operator when value > threshold"""
+        result = _match_numeric_operator(100, "gt:50")
+        self.assertTrue(result)
     
     def test_gt_operator_false(self):
-        """Test gt: operator when content length <= threshold"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=50):
-            result = _match_content_length(entry, "gt:100")
-            self.assertFalse(result)
+        """Test gt: operator when value <= threshold"""
+        result = _match_numeric_operator(50, "gt:100")
+        self.assertFalse(result)
     
     def test_gt_operator_equal(self):
-        """Test gt: operator when content length == threshold (should be false)"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "gt:100")
-            self.assertFalse(result)
+        """Test gt: operator when value == threshold (should be false)"""
+        result = _match_numeric_operator(100, "gt:100")
+        self.assertFalse(result)
     
     def test_ge_operator_true(self):
-        """Test ge: operator when content length >= threshold"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "ge:100")
-            self.assertTrue(result)
+        """Test ge: operator when value >= threshold"""
+        result = _match_numeric_operator(100, "ge:100")
+        self.assertTrue(result)
     
     def test_ge_operator_greater(self):
-        """Test ge: operator when content length > threshold"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=150):
-            result = _match_content_length(entry, "ge:100")
-            self.assertTrue(result)
+        """Test ge: operator when value > threshold"""
+        result = _match_numeric_operator(150, "ge:100")
+        self.assertTrue(result)
     
     def test_ge_operator_false(self):
-        """Test ge: operator when content length < threshold"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=50):
-            result = _match_content_length(entry, "ge:100")
-            self.assertFalse(result)
+        """Test ge: operator when value < threshold"""
+        result = _match_numeric_operator(50, "ge:100")
+        self.assertFalse(result)
     
     def test_lt_operator_true(self):
-        """Test lt: operator when content length < threshold"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=50):
-            result = _match_content_length(entry, "lt:100")
-            self.assertTrue(result)
+        """Test lt: operator when value < threshold"""
+        result = _match_numeric_operator(50, "lt:100")
+        self.assertTrue(result)
     
     def test_lt_operator_false(self):
-        """Test lt: operator when content length >= threshold"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "lt:50")
-            self.assertFalse(result)
+        """Test lt: operator when value >= threshold"""
+        result = _match_numeric_operator(100, "lt:50")
+        self.assertFalse(result)
     
     def test_lt_operator_equal(self):
-        """Test lt: operator when content length == threshold (should be false)"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "lt:100")
-            self.assertFalse(result)
+        """Test lt: operator when value == threshold (should be false)"""
+        result = _match_numeric_operator(100, "lt:100")
+        self.assertFalse(result)
     
     def test_le_operator_true(self):
-        """Test le: operator when content length <= threshold"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "le:100")
-            self.assertTrue(result)
+        """Test le: operator when value <= threshold"""
+        result = _match_numeric_operator(100, "le:100")
+        self.assertTrue(result)
     
     def test_le_operator_less(self):
-        """Test le: operator when content length < threshold"""
-        entry = {'content': '<p>short</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=50):
-            result = _match_content_length(entry, "le:100")
-            self.assertTrue(result)
+        """Test le: operator when value < threshold"""
+        result = _match_numeric_operator(50, "le:100")
+        self.assertTrue(result)
     
     def test_le_operator_false(self):
-        """Test le: operator when content length > threshold"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=150):
-            result = _match_content_length(entry, "le:100")
-            self.assertFalse(result)
+        """Test le: operator when value > threshold"""
+        result = _match_numeric_operator(150, "le:100")
+        self.assertFalse(result)
     
     def test_eq_operator_true(self):
-        """Test eq: operator when content length == threshold"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "eq:100")
-            self.assertTrue(result)
+        """Test eq: operator when value == threshold"""
+        result = _match_numeric_operator(100, "eq:100")
+        self.assertTrue(result)
     
     def test_eq_operator_false_greater(self):
-        """Test eq: operator when content length > threshold"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=150):
-            result = _match_content_length(entry, "eq:100")
-            self.assertFalse(result)
+        """Test eq: operator when value > threshold"""
+        result = _match_numeric_operator(150, "eq:100")
+        self.assertFalse(result)
     
     def test_eq_operator_false_less(self):
-        """Test eq: operator when content length < threshold"""
-        entry = {'content': '<p>short</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=50):
-            result = _match_content_length(entry, "eq:100")
-            self.assertFalse(result)
+        """Test eq: operator when value < threshold"""
+        result = _match_numeric_operator(50, "eq:100")
+        self.assertFalse(result)
     
     def test_between_operator_true(self):
-        """Test between: operator when content length is in range"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=75):
-            result = _match_content_length(entry, "between:50,100")
-            self.assertTrue(result)
+        """Test between: operator when value is in range"""
+        result = _match_numeric_operator(75, "between:50,100")
+        self.assertTrue(result)
     
     def test_between_operator_lower_bound(self):
         """Test between: operator at lower bound (inclusive)"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=50):
-            result = _match_content_length(entry, "between:50,100")
-            self.assertTrue(result)
+        result = _match_numeric_operator(50, "between:50,100")
+        self.assertTrue(result)
     
     def test_between_operator_upper_bound(self):
         """Test between: operator at upper bound (inclusive)"""
-        entry = {'content': '<p>test content</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=100):
-            result = _match_content_length(entry, "between:50,100")
-            self.assertTrue(result)
+        result = _match_numeric_operator(100, "between:50,100")
+        self.assertTrue(result)
     
     def test_between_operator_below_range(self):
-        """Test between: operator when content length is below range"""
-        entry = {'content': '<p>short</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=30):
-            result = _match_content_length(entry, "between:50,100")
-            self.assertFalse(result)
+        """Test between: operator when value is below range"""
+        result = _match_numeric_operator(30, "between:50,100")
+        self.assertFalse(result)
     
     def test_between_operator_above_range(self):
-        """Test between: operator when content length is above range"""
-        entry = {'content': '<p>' + 'long ' * 50 + '</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=150):
-            result = _match_content_length(entry, "between:50,100")
-            self.assertFalse(result)
+        """Test between: operator when value is above range"""
+        result = _match_numeric_operator(150, "between:50,100")
+        self.assertFalse(result)
     
     def test_between_with_spaces(self):
         """Test between: operator handles spaces around numbers"""
-        entry = {'content': '<p>test</p>'}
-        with patch('core.rule_matcher.get_content_length', return_value=75):
-            result = _match_content_length(entry, "between: 50 , 100 ")
-            self.assertTrue(result)
+        result = _match_numeric_operator(75, "between: 50 , 100 ")
+        self.assertTrue(result)
     
     def test_invalid_operator(self):
         """Test invalid operator returns False"""
-        entry = {'content': '<p>test</p>'}
-        result = _match_content_length(entry, "invalid:100")
+        result = _match_numeric_operator(100, "invalid:100")
         self.assertFalse(result)
     
     def test_invalid_number_format(self):
         """Test invalid number format returns False"""
-        entry = {'content': '<p>test</p>'}
-        result = _match_content_length(entry, "gt:not_a_number")
+        result = _match_numeric_operator(100, "gt:not_a_number")
         self.assertFalse(result)
     
     def test_between_missing_comma(self):
         """Test between: without comma returns False"""
-        entry = {'content': '<p>test</p>'}
-        result = _match_content_length(entry, "between:50")
+        result = _match_numeric_operator(75, "between:50")
         self.assertFalse(result)
 
 

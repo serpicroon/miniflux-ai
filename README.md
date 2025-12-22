@@ -26,10 +26,11 @@ More than just a summary. The digest engine generates a structured briefing wher
 - **Citation Backlinks**: Every point includes clickable references linking directly to the source article.
 - **Deduplication**: Automatically filters out duplicate stories across different feeds.
 
-### 3. 💰 Cost-Efficient Filtering
-Don't waste API credits on empty updates or image-only posts.
-- **Smart Skip**: Ignores entries that are too short or lack meaningful text content.
-- **Token-Based Thresholds**: Define minimum length using `tiktoken` counts. This ensures fair filtering for both concise languages (like Chinese) and verbose ones (like English), avoiding processing of low-value entries.
+### 3. 🎯 Powerful Rule-Based Filtering
+Process exactly what matters with Miniflux-compatible filtering rules.
+- **Flexible Targeting**: Match by title, URL, content, author, feed, tags—you name it.
+- **Smart Filters**: Combine regex patterns with numeric operators (content length, token counts).
+- **Token-Aware**: No more wasting API credits on trivial posts or empty updates.
 
 ### 4. ⚡ Enterprise-Level Concurrency
 Designed to handle thousands of unread entries efficiently.
@@ -50,18 +51,25 @@ agents:
   analyst:
     prompt: "Analyze this article for potential stock market impacts. Bullish or Bearish?"
     template: '<div class="insight-box">📈 <strong>Market Impact:</strong> {content}</div>'
+    deny_rules:
+      - EntryTitle=(?i)(advertisement|sponsored)  # Block ads
     allow_rules:
       - FeedSiteUrl=.*bloomberg\.com.*
       - FeedSiteUrl=.*techcrunch\.com.*
+      - EntryContentLength=ge:100  # Only process substantial articles
 ```
 
 **Example: The "TL;DR" Agent**
-*Just want 3 bullet points?*
+*Just want 3 bullet points for long-form content?*
 ```yaml
 agents:
   tldr:
     prompt: "Give me 3 bullet points."
     template: '<div class="tldr">📝 {content}</div>'
+    deny_rules:
+      - EntryContentLength=lt:200  # Skip short posts
+    allow_rules:
+      - EntryContentLength=between:200,2000  # Focus on medium-length articles
 ```
 
 *Configure as many agents as you want. They run in sequence and stack beautifully.*
@@ -106,7 +114,11 @@ Instead of reading a long wiki, please refer to the extensively commented sample
 - **[config.sample.Chinese.yml](config.sample.Chinese.yml)** - Chinese version with localized prompts.
 
 **Key capabilities you can tweak:**
-- **Rule-Based Filtering**: Control exactly which entries each agent processes using powerful regex rules.
+- **Rule-Based Filtering**: Control exactly which entries each agent processes with:
+  - **deny_rules**: Block unwanted content (ads, spam, specific topics)
+  - **allow_rules**: Whitelist only relevant entries
+  - **Numeric operators**: `gt:`, `ge:`, `lt:`, `le:`, `eq:`, `between:` for content length filtering
+  - **Regex patterns**: Powerful pattern matching across entry and feed fields
 - **Digest Schedule**: Morning coffee or evening review? You decide.
 - **HTML Templates**: Customize exactly how the AI output looks in your reader.
 
@@ -130,22 +142,18 @@ Once running, the system will **automatically create** a new feed in your Minifl
 <details>
 <summary><strong>Rule-based filters not working?</strong></summary>
 
-The filtering system uses **Regex patterns** with Miniflux-style rules.
+The filtering system uses **Regex patterns**.
 
 **Rule Format**: `FieldName=RegexPattern`
 
 **Supported Fields**:
-- Entry fields: `EntryTitle`, `EntryURL`, `EntryContent`, `EntryAuthor`, `EntryTag`
-- Feed fields: `FeedSiteUrl`, `FeedTitle`, `FeedCategoryTitle`
-- Special: `EntryContentLength` (length comparison), `NeverMatch` (placeholder)
-
-**EntryContentLength Operators**:
-- `gt:N` - Content length > N tokens (greater than)
-- `ge:N` - Content length >= N tokens (greater or equal)
-- `lt:N` - Content length < N tokens (less than)
-- `le:N` - Content length <= N tokens (less or equal)
-- `eq:N` - Content length == N tokens (equal)
-- `between:N,M` - N ≤ Content length ≤ M tokens (inclusive range)
+- **Text fields** (regex matching):
+  - Entry: `EntryTitle`, `EntryURL`, `EntryContent`, `EntryAuthor`, `EntryTag`
+  - Feed: `FeedSiteUrl`, `FeedTitle`, `FeedCategoryTitle`
+- **Numeric fields** (operator matching):
+  - `EntryContentLength` - Token count with `gt:`, `ge:`, `lt:`, `le:`, `eq:`, `between:` operators
+- **Special**:
+  - `NeverMatch` - Placeholder that never matches (useful for disabling rules)
 
 **Examples**:
 *   ✅ `FeedSiteUrl=.*github\.com.*` (Match any github.com URL)
@@ -155,12 +163,17 @@ The filtering system uses **Regex patterns** with Miniflux-style rules.
 *   ✅ `EntryContentLength=between:50,200` (50-200 tokens)
 *   ❌ `*github.com*` (Old glob pattern - no longer supported)
 
+**Rule Processing Order**:
+1. **deny_rules** checked first → if matched, block immediately
+2. **allow_rules** checked second → if defined, entry must match
+3. **Default** → if no allow_rules defined, keep entry
+
 **Tips**:
-- Use `(?i)` prefix for case-insensitive matching
-- Remember to escape special regex characters (e.g., `\.` for literal dot)
-- **deny_rules** always take precedence over **allow_rules** (security first)
-- Use `allow_rules: []` or omit it for blacklist mode (default keep)
-- Test your regex at [regex101.com](https://regex101.com) (Python flavor)
+- Use `(?i)` prefix for case-insensitive regex matching
+- Escape special regex characters (e.g., `\.` for literal dot)
+- **deny_rules** always override **allow_rules** (security first)
+- Omit `allow_rules` for blacklist mode (block specific, keep rest)
+- Test regex at [regex101.com](https://regex101.com) (Python flavor)
 
 See [config.sample.English.yml](config.sample.English.yml) for more examples.
 </details>

@@ -12,7 +12,7 @@ miniflux:
 llm:
   base_url: http://host.docker.internal:11434/v1  # LLM API 接口地址
   api_key: ollama                                 # API 密钥
-  model: llama3.1:latest                         # 模型名称
+  model: llama3.1:latest                          # 模型名称
   # timeout: 60        # 请求超时时间，单位秒 (默认: 60)
   # max_workers: 4     # 并发请求数限制 (默认: 4)
   # RPM: 15            # 每分钟请求数限制 (默认: 1000)
@@ -95,9 +95,6 @@ agents:
     #   - FeedTitle: 订阅源标题
     #   - FeedCategoryTitle: 订阅源分类标题
     #   - NeverMatch: 永不匹配的占位符 (等号后可填任意说明文字)
-    #
-    # EntryContentLength 运算符:
-    #   gt:N (>N), ge:N (>=N), lt:N (<N), le:N (<=N), eq:N (==N), between:N,M (N<=x<=M)
     #
     # 使用 (?i) 前缀进行不区分大小写的匹配
     

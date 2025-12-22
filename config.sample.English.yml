@@ -96,9 +96,6 @@ agents:
     #   - FeedCategoryTitle: Feed category title
     #   - NeverMatch: Special placeholder that never matches (value after = can be any comment)
     #
-    # EntryContentLength operators:
-    #   gt:N  (>N), ge:N (>=N), lt:N (<N), le:N (<=N), eq:N (==N), between:N,M (N<=x<=M)
-    #
     # Use (?i) prefix for case-insensitive matching
     
     allow_rules: []  # Keep rules (entry must match at least one)

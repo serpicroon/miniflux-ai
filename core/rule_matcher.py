@@ -6,12 +6,21 @@ Rule format: FieldName=RegexPattern
 """
 
 import re
+from enum import Enum
 from typing import List, Dict, Any, Optional, Tuple
 
 from common.logger import logger
 from core.content_helper import get_content_text, get_content_length
 
 
+class FieldType(Enum):
+    """Field matching type for rule processing"""
+    REGEX = "regex"      # Match using regular expression
+    NUMERIC = "numeric"  # Match using numeric operators (gt, ge, lt, le, eq, between)
+    NONE = "none"        # Never matches (placeholder)
+
+
+# Field name constants
 FIELD_ENTRY_TITLE = 'EntryTitle'
 FIELD_ENTRY_URL = 'EntryURL'
 FIELD_ENTRY_CONTENT = 'EntryContent'
@@ -23,18 +32,22 @@ FIELD_FEED_TITLE = 'FeedTitle'
 FIELD_FEED_CATEGORY_TITLE = 'FeedCategoryTitle'
 FIELD_NEVER_MATCH = 'NeverMatch'
 
-SUPPORTED_FIELDS = {
-    FIELD_ENTRY_TITLE,
-    FIELD_ENTRY_URL,
-    FIELD_ENTRY_CONTENT,
-    FIELD_ENTRY_AUTHOR,
-    FIELD_ENTRY_TAG,
-    FIELD_ENTRY_CONTENT_LENGTH,
-    FIELD_FEED_SITE_URL,
-    FIELD_FEED_TITLE,
-    FIELD_FEED_CATEGORY_TITLE,
-    FIELD_NEVER_MATCH,
+# Field configuration: maps field name to its matching type
+FIELD_CONFIG = {
+    FIELD_ENTRY_TITLE: FieldType.REGEX,
+    FIELD_ENTRY_URL: FieldType.REGEX,
+    FIELD_ENTRY_CONTENT: FieldType.REGEX,
+    FIELD_ENTRY_AUTHOR: FieldType.REGEX,
+    FIELD_ENTRY_TAG: FieldType.REGEX,
+    FIELD_ENTRY_CONTENT_LENGTH: FieldType.NUMERIC,
+    FIELD_FEED_SITE_URL: FieldType.REGEX,
+    FIELD_FEED_TITLE: FieldType.REGEX,
+    FIELD_FEED_CATEGORY_TITLE: FieldType.REGEX,
+    FIELD_NEVER_MATCH: FieldType.NONE,
 }
+
+# All supported field names
+SUPPORTED_FIELDS = set(FIELD_CONFIG.keys())
 
 
 def parse_rule(rule_string: str) -> Optional[Tuple[str, str]]:
@@ -92,6 +105,9 @@ def get_entry_field_value(entry: Dict[str, Any], field_name: str) -> str:
     
     elif field_name == FIELD_ENTRY_CONTENT:
         return get_content_text(entry)
+
+    elif field_name == FIELD_ENTRY_CONTENT_LENGTH:
+        return str(get_content_length(entry))
     
     elif field_name == FIELD_ENTRY_AUTHOR:
         return entry.get('author', '')
@@ -112,72 +128,63 @@ def get_entry_field_value(entry: Dict[str, Any], field_name: str) -> str:
     return ''
 
 
-def _match_content_length(entry: Dict[str, Any], operator: str) -> bool:
+def _match_numeric_operator(value: int, operator: str, field_name: str = "numeric field") -> bool:
     """
-    Check if entry content length matches the operator condition.
+    Generic numeric comparison for rule fields with operator syntax.
     
-    Supports standard comparison operators:
-    - gt:N        - length > N (greater than)
-    - ge:N        - length >= N (greater or equal)
-    - lt:N        - length < N (less than)
-    - le:N        - length <= N (less or equal)
-    - eq:N        - length == N (equal)
-    - between:N,M - N <= length <= M (inclusive range)
+    Supports standard comparison operators for any numeric field:
+    - gt:N        - value > N (greater than)
+    - ge:N        - value >= N (greater or equal)
+    - lt:N        - value < N (less than)
+    - le:N        - value <= N (less or equal)
+    - eq:N        - value == N (equal)
+    - between:N,M - N <= value <= M (inclusive range)
     
     Args:
-        entry: Entry dictionary
+        value: The numeric value to compare
         operator: Operator string (e.g., "gt:100", "between:50,200")
+        field_name: Field name for logging purposes (optional)
         
     Returns:
-        True if content length matches the condition
-        
-    Examples:
-        >>> _match_content_length(entry, "gt:100")  # length > 100
-        >>> _match_content_length(entry, "ge:100")  # length >= 100
-        >>> _match_content_length(entry, "lt:50")  # length < 50
-        >>> _match_content_length(entry, "le:50")  # length <= 50
-        >>> _match_content_length(entry, "eq:100")  # length == 100
-        >>> _match_content_length(entry, "between:50,200")  # 50 <= length <= 200
+        True if value matches the operator condition
     """
-    content_length = get_content_length(entry)
-    
     try:
         if operator.startswith('gt:'):
             threshold = int(operator[3:])
-            return content_length > threshold
+            return value > threshold
         
         elif operator.startswith('ge:'):
             threshold = int(operator[3:])
-            return content_length >= threshold
+            return value >= threshold
         
         elif operator.startswith('lt:'):
             threshold = int(operator[3:])
-            return content_length < threshold
+            return value < threshold
         
         elif operator.startswith('le:'):
             threshold = int(operator[3:])
-            return content_length <= threshold
+            return value <= threshold
         
         elif operator.startswith('eq:'):
             threshold = int(operator[3:])
-            return content_length == threshold
+            return value == threshold
         
         elif operator.startswith('between:'):
             range_str = operator[8:]
             if ',' not in range_str:
-                logger.warning(f"Invalid between operator format: {operator}")
+                logger.warning(f"Invalid between operator format for {field_name}: {operator}")
                 return False
             min_val, max_val = range_str.split(',', 1)
-            min_length = int(min_val.strip())
-            max_length = int(max_val.strip())
-            return min_length <= content_length <= max_length
+            min_threshold = int(min_val.strip())
+            max_threshold = int(max_val.strip())
+            return min_threshold <= value <= max_threshold
         
         else:
-            logger.warning(f"Unknown EntryContentLength operator: {operator}")
+            logger.warning(f"Unknown numeric operator for {field_name}: {operator}")
             return False
             
     except (ValueError, IndexError) as e:
-        logger.warning(f"Invalid EntryContentLength operator '{operator}': {e}")
+        logger.warning(f"Invalid numeric operator for {field_name} '{operator}': {e}")
         return False
 
 
@@ -199,23 +206,32 @@ def _match_any_rule(entry: Dict[str, Any], rules: List[str]) -> bool:
             continue
         
         field_name, pattern = parsed
+        field_type = FIELD_CONFIG.get(field_name)
         
-        if field_name == FIELD_NEVER_MATCH:
-            continue
-        
-        # Special handling for EntryContentLength with operators
-        if field_name == FIELD_ENTRY_CONTENT_LENGTH:
-            if _match_content_length(entry, pattern):
-                return True
+        # Skip NONE type fields (e.g., NeverMatch)
+        if field_type == FieldType.NONE:
             continue
         
         field_value = get_entry_field_value(entry, field_name)
         
-        try:
-            if re.search(pattern, field_value):
-                return True
-        except re.error as e:
-            logger.warning(f"Invalid regex pattern in rule '{rule_string}': {e}")
+        # Handle different field types
+        if field_type == FieldType.NUMERIC:
+            # Numeric comparison using operators
+            try:
+                numeric_value = int(field_value)
+                if _match_numeric_operator(numeric_value, pattern, field_name):
+                    return True
+            except ValueError:
+                logger.warning(f"Invalid numeric value for {field_name}: {field_value}")
+            continue
+        
+        elif field_type == FieldType.REGEX:
+            # Regex pattern matching
+            try:
+                if re.search(pattern, field_value):
+                    return True
+            except re.error as e:
+                logger.warning(f"Invalid regex pattern in rule '{rule_string}': {e}")
             continue
     
     return False
@@ -227,18 +243,10 @@ def match_rules(entry: Dict[str, Any],
     """
     Determine if entry should be processed based on allow and deny rules.
     
-    Rule processing order (following Miniflux behavior):
-    1. Check deny_rules (Block Rules) first - highest priority
-       → If matched: immediately block, return False
-    2. Check allow_rules (Keep Rules) - if defined
-       → If matched: keep, return True
-       → If NOT matched: block, return False
-    3. If no allow_rules defined: default to keep, return True
-    
-    This implements:
-    - Blacklist mode (only deny_rules): Block specific entries, keep others
-    - Whitelist mode (only allow_rules): Keep only specific entries
-    - Combined mode (both): Block first, then require allow match
+    Rule processing order:
+    1. Check deny_rules. If entry matches ANY deny rule, immediately block it
+    2. Check allow_rules. If allow_rules are defined, entry MUST match at least one
+    3. If no allow_rules defined, default to keep.
     
     Args:
         entry: Entry dictionary from Miniflux
@@ -247,32 +255,15 @@ def match_rules(entry: Dict[str, Any],
         
     Returns:
         True if entry should be processed, False otherwise
-        
-    Examples:
-        >>> # Blacklist mode: block spam, keep others
-        >>> match_rules(entry, [], ["EntryTitle=(?i)spam"])
-        
-        >>> # Whitelist mode: keep only Python articles
-        >>> match_rules(entry, ["EntryTitle=(?i)python"], [])
-        
-        >>> # Combined mode: block ads first, then keep only tech
-        >>> match_rules(entry, ["FeedCategory=Tech"], ["EntryTitle=(?i)ad"])
-        
-        >>> # No rules: process everything
-        >>> match_rules(entry, [], [])
-        True
     """
-    # Step 1: Check deny_rules first (Block Rules - highest priority)
-    # If entry matches ANY deny rule, immediately block it
+    # Step 1: Check deny_rules first.If entry matches ANY deny rule, immediately block it
     if deny_rules and _match_any_rule(entry, deny_rules):
         return False
     
-    # Step 2: Check allow_rules (Keep Rules)
-    # If allow_rules are defined, entry MUST match at least one
+    # Step 2: Check allow_rules. If allow_rules are defined, entry MUST match at least one
     if allow_rules:
         return _match_any_rule(entry, allow_rules)
     
-    # Step 3: No allow_rules defined, default to keep
-    # (Blacklist mode: only block entries matching deny_rules)
+    # Step 3: No allow_rules defined, default to keep.
     return True
 

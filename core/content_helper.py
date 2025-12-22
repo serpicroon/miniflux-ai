@@ -23,7 +23,7 @@ _MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugin
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 # Internal cache key for storing computed values in entry dict
-_CACHE_KEY = '_agent_cache'
+_CACHE_KEY = '_helper_cache'
 
 
 def _get_cache(entry: Dict) -> Dict:
