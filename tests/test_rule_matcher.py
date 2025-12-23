@@ -36,7 +36,7 @@ class TestFieldConstants(unittest.TestCase):
         self.assertEqual(FIELD_ENTRY_AUTHOR, 'EntryAuthor')
         self.assertEqual(FIELD_ENTRY_TAG, 'EntryTag')
         self.assertEqual(FIELD_ENTRY_CONTENT_LENGTH, 'EntryContentLength')
-        self.assertEqual(FIELD_FEED_SITE_URL, 'FeedSiteUrl')
+        self.assertEqual(FIELD_FEED_SITE_URL, 'FeedSiteURL')
         self.assertEqual(FIELD_FEED_TITLE, 'FeedTitle')
         self.assertEqual(FIELD_FEED_CATEGORY_TITLE, 'FeedCategoryTitle')
         self.assertEqual(FIELD_NEVER_MATCH, 'NeverMatch')
@@ -65,8 +65,8 @@ class TestParseRule(unittest.TestCase):
     
     def test_valid_rule_with_complex_pattern(self):
         """Test parsing rule with complex regex pattern"""
-        result = parse_rule("FeedSiteUrl=https://example\\.com/.*")
-        self.assertEqual(result, ("FeedSiteUrl", "https://example\\.com/.*"))
+        result = parse_rule("FeedSiteURL=https://example\\.com/.*")
+        self.assertEqual(result, ("FeedSiteURL", "https://example\\.com/.*"))
     
     def test_valid_rule_with_equals_in_pattern(self):
         """Test parsing rule with '=' in the pattern"""
@@ -369,7 +369,7 @@ class TestMatchAnyRule(unittest.TestCase):
     
     def test_matches_feed_site_url(self):
         """Test matching against feed site URL"""
-        rules = ["FeedSiteUrl=.*example\\.com.*"]
+        rules = ["FeedSiteURL=.*example\\.com.*"]
         result = _match_any_rule(self.entry, rules)
         self.assertTrue(result)
     
@@ -406,7 +406,7 @@ class TestMatchAnyRule(unittest.TestCase):
     
     def test_invalid_regex_is_skipped(self):
         """Test that rules with invalid regex are skipped"""
-        rules = ["EntryTitle=[invalid(regex", "FeedSiteUrl=.*example.*"]
+        rules = ["EntryTitle=[invalid(regex", "FeedSiteURL=.*example.*"]
         result = _match_any_rule(self.entry, rules)
         self.assertTrue(result)
     
@@ -479,7 +479,7 @@ class TestMatchRules(unittest.TestCase):
     def test_deny_rules_take_precedence(self):
         """Test that deny_rules are checked before allow_rules (Miniflux behavior)"""
         allow_rules = ["EntryTitle=(?i)python"]  # Would match
-        deny_rules = ["FeedSiteUrl=.*example.*"]  # Also matches
+        deny_rules = ["FeedSiteURL=.*example.*"]  # Also matches
         result = match_rules(self.entry, allow_rules, deny_rules)
         # Deny rule checked first and matches, so entry is blocked
         # even though it would match allow_rules
@@ -518,7 +518,7 @@ class TestMatchRules(unittest.TestCase):
     def test_multiple_field_matching(self):
         """Test matching against multiple different fields"""
         allow_rules = [
-            "FeedSiteUrl=.*example\\.com.*",
+            "FeedSiteURL=.*example\\.com.*",
             "FeedCategoryTitle=Development",
             "EntryAuthor=Jane.*"
         ]
@@ -541,7 +541,7 @@ class TestRealWorldScenarios(unittest.TestCase):
         # Typical translation config: only translate specific sites
         allow_rules = [
             "NeverMatch=保留此项",
-            "FeedSiteUrl=https://foreign-site\\.com.*"
+            "FeedSiteURL=https://foreign-site\\.com.*"
         ]
         deny_rules = []
         
@@ -561,7 +561,7 @@ class TestRealWorldScenarios(unittest.TestCase):
         with patch('core.rule_matcher.get_content_length', return_value=100):
             allow_rules = []
             deny_rules = [
-                "FeedSiteUrl=.*digest.*",
+                "FeedSiteURL=.*digest.*",
                 "EntryContentLength=gt:99"
             ]
             

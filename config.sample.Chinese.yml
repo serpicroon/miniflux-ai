@@ -91,7 +91,7 @@ agents:
     #   - EntryAuthor: 条目作者
     #   - EntryTag: 条目标签 (逗号分隔)
     #   - EntryContentLength: 内容长度比较 (运算符: gt, ge, lt, le, eq, between)
-    #   - FeedSiteUrl: 订阅源站点URL
+    #   - FeedSiteURL: 订阅源站点URL
     #   - FeedTitle: 订阅源标题
     #   - FeedCategoryTitle: 订阅源分类标题
     #   - NeverMatch: 永不匹配的占位符 (等号后可填任意说明文字)
@@ -100,13 +100,13 @@ agents:
     
     allow_rules: []
     deny_rules:
-      - FeedSiteUrl=http://miniflux-ai        # 排除摘要订阅源
+      - FeedSiteURL=http://miniflux-ai        # 排除摘要订阅源
       - EntryContentLength=lt:100             # 屏蔽少于100 tokens的条目
       # - EntryContentLength=gt:500           # 仅保留超过500 tokens的条目
       # - EntryContentLength=ge:100           # 仅保留大于等于100 tokens的条目
       # - EntryContentLength=between:100,500  # 仅保留100-500 tokens的条目
       # - EntryTitle=广告|推广                 # 排除包含"广告"或"推广"的标题
-      # - FeedSiteUrl=https://spam\.com       # 排除特定站点
+      # - FeedSiteURL=https://spam\.com       # 排除特定站点
       # - FeedCategoryTitle=(?i)spam          # 排除特定分类
     
   translate:
@@ -129,7 +129,7 @@ agents:
     
     allow_rules:     # 仅翻译匹配的条目
       - NeverMatch=  # 永不匹配的占位符
-      # - FeedSiteUrl=https://example\.com.*   # 翻译特定站点的所有内容
+      # - FeedSiteURL=https://example\.com.*   # 翻译特定站点的所有内容
       # - FeedTitle=(?i).*tech.*news.*         # 翻译标题包含"tech"和"news"的源
       # - EntryURL=.*foreign\.example\.com.*   # 翻译特定域名的内容
     deny_rules: []   # 排除翻译的规则

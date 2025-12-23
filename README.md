@@ -54,8 +54,8 @@ agents:
     deny_rules:
       - EntryTitle=(?i)(advertisement|sponsored)  # Block ads
     allow_rules:
-      - FeedSiteUrl=.*bloomberg\.com.*
-      - FeedSiteUrl=.*techcrunch\.com.*
+      - FeedSiteURL=.*bloomberg\.com.*
+      - FeedSiteURL=.*techcrunch\.com.*
       - EntryContentLength=ge:100  # Only process substantial articles
 ```
 
@@ -149,14 +149,14 @@ The filtering system uses **Regex patterns**.
 **Supported Fields**:
 - **Text fields** (regex matching):
   - Entry: `EntryTitle`, `EntryURL`, `EntryContent`, `EntryAuthor`, `EntryTag`
-  - Feed: `FeedSiteUrl`, `FeedTitle`, `FeedCategoryTitle`
+  - Feed: `FeedSiteURL`, `FeedTitle`, `FeedCategoryTitle`
 - **Numeric fields** (operator matching):
   - `EntryContentLength` - Token count with `gt:`, `ge:`, `lt:`, `le:`, `eq:`, `between:` operators
 - **Special**:
   - `NeverMatch` - Placeholder that never matches (useful for disabling rules)
 
 **Examples**:
-*   ✅ `FeedSiteUrl=.*github\.com.*` (Match any github.com URL)
+*   ✅ `FeedSiteURL=.*github\.com.*` (Match any github.com URL)
 *   ✅ `EntryTitle=(?i)python` (Case-insensitive title match)
 *   ✅ `EntryContentLength=gt:100` (More than 100 tokens)
 *   ✅ `EntryContentLength=ge:50` (50 or more tokens)

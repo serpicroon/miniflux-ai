@@ -115,7 +115,7 @@ agents:
     template: '<div>{content}</div>'
     allow_rules:
       - EntryTitle=(?i)python
-      - FeedSiteUrl=.*github\.com.*
+      - FeedSiteURL=.*github\.com.*
     deny_rules:
       - EntryTitle=(?i)spam
 """
@@ -129,7 +129,7 @@ agents:
         self.assertEqual(agent.template, '<div>{content}</div>')
         self.assertEqual(len(agent.allow_rules), 2)
         self.assertEqual(agent.allow_rules[0], 'EntryTitle=(?i)python')
-        self.assertEqual(agent.allow_rules[1], 'FeedSiteUrl=.*github\\.com.*')
+        self.assertEqual(agent.allow_rules[1], 'FeedSiteURL=.*github\\.com.*')
         self.assertEqual(len(agent.deny_rules), 1)
         self.assertEqual(agent.deny_rules[0], 'EntryTitle=(?i)spam')
     
