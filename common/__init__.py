@@ -3,6 +3,7 @@ from pathlib import Path
 
 from .config import config
 from .logger import logger
+from .exceptions import LLMResponseError
 
 
 # File paths
