@@ -53,10 +53,10 @@ agents:
     template: '<div class="insight-box">📈 <strong>Market Impact:</strong> {content}</div>'
     deny_rules:
       - EntryTitle=(?i)(advertisement|sponsored)  # Block ads
+      - EntryContentLength=lt:100  # Only process substantial articles
     allow_rules:
       - FeedSiteURL=.*bloomberg\.com.*
       - FeedSiteURL=.*techcrunch\.com.*
-      - EntryContentLength=ge:100  # Only process substantial articles
 ```
 
 **Example: The "TL;DR" Agent**
@@ -66,8 +66,6 @@ agents:
   tldr:
     prompt: "Give me 3 bullet points."
     template: '<div class="tldr">📝 {content}</div>'
-    deny_rules:
-      - EntryContentLength=lt:200  # Skip short posts
     allow_rules:
       - EntryContentLength=between:200,2000  # Focus on medium-length articles
 ```
