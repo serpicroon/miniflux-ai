@@ -1,8 +1,9 @@
 from openai import OpenAI
 from ratelimit import limits, sleep_and_retry
-from common.logger import logger
 
 from common import config
+from common.logger import logger
+from common.exceptions import LLMResponseError
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are Miniflux AI Agent, skillfully interpreting RSS content "
@@ -57,11 +58,10 @@ def get_completion(system_prompt: str, user_prompt: str, temperature: float = No
     logger.debug(f"LLM response: {completion}")
     
     if not completion.choices or not completion.choices[0].message:
-        raise ValueError(f"LLM returned unexpected response: {completion}")
+        raise LLMResponseError(f"LLM returned unexpected response: {completion}")
     
     content = completion.choices[0].message.content
     if not content:
-        raise ValueError(f"LLM returned empty content: {completion}")
+        raise LLMResponseError(f"LLM returned empty content: {completion}")
     
     return content.strip()
- 

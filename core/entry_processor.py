@@ -1,21 +1,22 @@
-import traceback
 import threading
-from typing import Dict, Any
+import traceback
 from cachetools import TTLCache
+from typing import Dict, Any
 
-from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
 from common import config
+from common.exceptions import LLMResponseError
+from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
 from common.models import AgentResult, Agent
-from core.digest_generator import save_summary
-from core.rule_matcher import match_rules
-from core.llm_client import get_completion
-from core.miniflux_client import get_miniflux_client
 from core.content_helper import (
-    to_markdown, 
-    to_html, 
-    parse_entry_content, 
+    to_markdown,
+    to_html,
+    parse_entry_content,
     build_ordered_content
 )
+from core.digest_generator import save_summary
+from core.llm_client import get_completion
+from core.miniflux_client import get_miniflux_client
+from core.rule_matcher import match_rules
 
 # Entry processing cache to avoid duplicate processing
 _ENTRY_CACHE_LOCK = threading.Lock()
@@ -134,7 +135,7 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, A
         log_entry_debug(entry, agent_name=agent_name, message=f"Formatted content: {formatted_content}", include_title=True)
         
         return AgentResult.success(formatted_content)
-    except ValueError as e:
+    except LLMResponseError as e:
         log_entry_error(entry, agent_name=agent_name, message=f"LLM error: {e}")
         return AgentResult.error(e, message=str(e))
     except Exception as e:
