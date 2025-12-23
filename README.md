@@ -111,15 +111,6 @@ Instead of reading a long wiki, please refer to the extensively commented sample
 - **[config.sample.English.yml](config.sample.English.yml)** - Recommended starting point.
 - **[config.sample.Chinese.yml](config.sample.Chinese.yml)** - Chinese version with localized prompts.
 
-**Key capabilities you can tweak:**
-- **Rule-Based Filtering**: Control exactly which entries each agent processes with:
-  - **deny_rules**: Block unwanted content (ads, spam, specific topics)
-  - **allow_rules**: Whitelist only relevant entries
-  - **Numeric operators**: `gt:`, `ge:`, `lt:`, `le:`, `eq:`, `between:` for content length filtering
-  - **Regex patterns**: Powerful pattern matching across entry and feed fields
-- **Digest Schedule**: Morning coffee or evening review? You decide.
-- **HTML Templates**: Customize exactly how the AI output looks in your reader.
-
 ---
 
 ## 🔌 Setup Guide
