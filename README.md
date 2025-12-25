@@ -26,10 +26,11 @@ More than just a summary. The digest engine generates a structured briefing wher
 - **Citation Backlinks**: Every point includes clickable references linking directly to the source article.
 - **Deduplication**: Automatically filters out duplicate stories across different feeds.
 
-### 3. 💰 Cost-Efficient Filtering
-Don't waste API credits on empty updates or image-only posts.
-- **Smart Skip**: Ignores entries that are too short or lack meaningful text content.
-- **Token-Based Thresholds**: Define minimum length using `tiktoken` counts. This ensures fair filtering for both concise languages (like Chinese) and verbose ones (like English), avoiding processing of low-value entries.
+### 3. 🎯 Powerful Rule-Based Filtering
+Process exactly what matters with Miniflux-compatible filtering rules.
+- **Flexible Targeting**: Match by title, URL, content, author, feed, tags—you name it.
+- **Smart Filters**: Combine regex patterns with numeric operators (content length, token counts).
+- **Token-Aware**: No more wasting API credits on trivial posts or empty updates.
 
 ### 4. ⚡ Enterprise-Level Concurrency
 Designed to handle thousands of unread entries efficiently.
@@ -50,16 +51,23 @@ agents:
   analyst:
     prompt: "Analyze this article for potential stock market impacts. Bullish or Bearish?"
     template: '<div class="insight-box">📈 <strong>Market Impact:</strong> {content}</div>'
-    allow_list: ["*bloomberg.com*", "*techcrunch.com*"]
+    deny_rules:
+      - EntryTitle=(?i)(advertisement|sponsored)  # Block ads
+      - EntryContentLength=lt:100  # Only process substantial articles
+    allow_rules:
+      - FeedSiteURL=.*bloomberg\.com.*
+      - FeedSiteURL=.*techcrunch\.com.*
 ```
 
 **Example: The "TL;DR" Agent**
-*Just want 3 bullet points?*
+*Just want 3 bullet points for long-form content?*
 ```yaml
 agents:
   tldr:
     prompt: "Give me 3 bullet points."
     template: '<div class="tldr">📝 {content}</div>'
+    allow_rules:
+      - EntryContentLength=between:200,2000  # Focus on medium-length articles
 ```
 
 *Configure as many agents as you want. They run in sequence and stack beautifully.*
@@ -103,11 +111,6 @@ Instead of reading a long wiki, please refer to the extensively commented sample
 - **[config.sample.English.yml](config.sample.English.yml)** - Recommended starting point.
 - **[config.sample.Chinese.yml](config.sample.Chinese.yml)** - Chinese version with localized prompts.
 
-**Key capabilities you can tweak:**
-- **Per-Agent Filters**: Only run "Translate" on foreign sites? Easy.
-- **Digest Schedule**: Morning coffee or evening review? You decide.
-- **HTML Templates**: Customize exactly how the AI output looks in your reader.
-
 ---
 
 ## 🔌 Setup Guide
@@ -126,11 +129,42 @@ Once running, the system will **automatically create** a new feed in your Minifl
 ## 🔧 Troubleshooting
 
 <details>
-<summary><strong>Filters (Allow/Deny lists) not working?</strong></summary>
+<summary><strong>Rule-based filters not working?</strong></summary>
 
-The filters use **Glob patterns** (like wildcards), NOT Regex.
-*   ✅ `*github.com*` (Correct)
-*   ❌ `.*github\.com.*` (Incorrect)
+The filtering system uses **Regex patterns**.
+
+**Rule Format**: `FieldName=RegexPattern`
+
+**Supported Fields**:
+- **Text fields** (regex matching):
+  - Entry: `EntryTitle`, `EntryURL`, `EntryContent`, `EntryAuthor`, `EntryTag`
+  - Feed: `FeedSiteURL`, `FeedTitle`, `FeedCategoryTitle`
+- **Numeric fields** (operator matching):
+  - `EntryContentLength` - Token count with `gt:`, `ge:`, `lt:`, `le:`, `eq:`, `between:` operators
+- **Special**:
+  - `NeverMatch` - Placeholder that never matches (useful for disabling rules)
+
+**Examples**:
+*   ✅ `FeedSiteURL=.*github\.com.*` (Match any github.com URL)
+*   ✅ `EntryTitle=(?i)python` (Case-insensitive title match)
+*   ✅ `EntryContentLength=gt:100` (More than 100 tokens)
+*   ✅ `EntryContentLength=ge:50` (50 or more tokens)
+*   ✅ `EntryContentLength=between:50,200` (50-200 tokens)
+*   ❌ `*github.com*` (Old glob pattern - no longer supported)
+
+**Rule Processing Order**:
+1. **deny_rules** checked first → if matched, block immediately
+2. **allow_rules** checked second → if defined, entry must match
+3. **Default** → if no allow_rules defined, keep entry
+
+**Tips**:
+- Use `(?i)` prefix for case-insensitive regex matching
+- Escape special regex characters (e.g., `\.` for literal dot)
+- **deny_rules** always override **allow_rules** (security first)
+- Omit `allow_rules` for blacklist mode (block specific, keep rest)
+- Test regex at [regex101.com](https://regex101.com) (Python flavor)
+
+See [config.sample.English.yml](config.sample.English.yml) for more examples.
 </details>
 
 <details>

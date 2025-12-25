@@ -19,7 +19,7 @@ llm:
 
 digest:
   # Service URL for RSS feed generation (use container name for Docker Compose)
-  url: &digest_url http://miniflux-ai
+  url: http://miniflux-ai
 
   # Feed name displayed in Miniflux (optional, has default value)
   # name: "Minifluxᴬᴵ Digest for you"
@@ -81,13 +81,34 @@ agents:
         </div>
       </aside>
       <hr>
-    # Minimum content length in tokens (using tiktoken), fair for all languages
-    min_content_length: 100
-    deny_list:
-      - *digest_url  # Exclude digest feed from processing
-      # - https://example.com/       # Exact site_url match
-      # - https://example.com/*      # All pages under example.com
-    allow_list: []  # Process only specific URLs (empty = process all)
+    
+    # Rule-based filtering
+    # Rule format: FieldName=RegexPattern (or FieldName=Operator:Value for special fields)
+    # Supported fields:
+    #   - EntryTitle: Entry title
+    #   - EntryURL: Entry URL
+    #   - EntryContent: Entry content (HTML stripped)
+    #   - EntryAuthor: Entry author
+    #   - EntryTag: Entry tags (comma-separated)
+    #   - EntryContentLength: Content length comparison (operators: gt, ge, lt, le, eq, between)
+    #   - FeedSiteURL: Feed site URL
+    #   - FeedTitle: Feed title
+    #   - FeedCategoryTitle: Feed category title
+    #   - NeverMatch: Special placeholder that never matches (value after = can be any comment)
+    #
+    # Use (?i) prefix for case-insensitive matching
+    
+    allow_rules: []
+    deny_rules:
+      - FeedSiteURL=http://miniflux-ai          # Exclude digest feed
+      - EntryContentLength=lt:100               # Block entries with < 100 tokens
+      # - EntryContentLength=gt:500             # Only allow entries with > 500 tokens
+      # - EntryContentLength=ge:100             # Only allow entries with >= 100 tokens
+      # - EntryContentLength=between:100,500    # Only allow entries with 100-500 tokens
+      # - EntryTitle=(?i)\b(save|get)\s+\$\d{2,5}\b  # Block "Save $50", "Get $100" in title
+      # - EntryTitle=(?i)\$\d{2,5}\s+(off|discount)  # Block "$50 off" patterns
+      # - FeedSiteURL=https://spam\.com         # Block specific site
+      # - FeedCategoryTitle=(?i)ads             # Block specific category
     
   translate:
     prompt: |-
@@ -102,9 +123,14 @@ agents:
         </div>
       </section>
       <hr>
-    deny_list: []    # URLs to exclude from translation
-    allow_list:      # URLs to include for translation (empty = process all)
-      # WARNING: If both deny_list and allow_list are empty, ALL entries will be processed
-      # This may consume significant tokens. Consider adding URLs to allow_list to limit processing.
-      - PLACEHOLDER  # Keep this to prevent processing all entries, add your URLs below
-      # - *foreign.example.com*          # Any URL containing foreign.example.com
+    
+    # Translation rule configuration
+    # WARNING: If both allow_rules and deny_rules are empty, ALL entries will be processed
+    # This may consume significant tokens. Use allow_rules to limit processing scope.
+    
+    allow_rules:     # Only translate matching entries
+      - NeverMatch=  # Never-matching placeholder
+      # - FeedSiteURL=https://example\.com.*          # Translate specific site
+      # - FeedTitle=(?i).*foreign.*news.*             # Translate feeds with "foreign" and "news"
+      # - EntryURL=.*international\.example\.com.*    # Translate specific domain
+    deny_rules: []   # Exclude from translation

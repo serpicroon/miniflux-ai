@@ -2,9 +2,26 @@
 Data models
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
+
+
+@dataclass
+class Agent:
+    """
+    Agent configuration with rule-based filtering
+    
+    Attributes:
+        prompt: The prompt template for the agent
+        template: The output template for formatting agent results
+        allow_rules: List of rules in format "FieldName=RegEx". Entry must match at least one rule.
+        deny_rules: List of rules in format "FieldName=RegEx". Entry must NOT match any rule.
+    """
+    prompt: str
+    template: str
+    allow_rules: List[str] = field(default_factory=list)
+    deny_rules: List[str] = field(default_factory=list)
 
 
 class AgentResultStatus(Enum):
