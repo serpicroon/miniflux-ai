@@ -10,11 +10,6 @@ An advanced, self-deployed AI companion for [Miniflux](https://miniflux.app/). W
 
 ---
 
-> [!CAUTION]
-> This project currently supports **Miniflux v2.2.15 and earlier**.
-> 
-> Upcoming Miniflux releases will execute the [content sanitizer](https://github.com/miniflux/v2/commit/709e6711685c290f0b0107545d481233b17dc7e7) when updating entries, which requires a future update here.
-
 ## 🚀 Why This Fork?
 
 Built from the ground up for stability and data integrity.

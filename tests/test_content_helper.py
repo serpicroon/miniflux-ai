@@ -11,7 +11,8 @@ from core.content_helper import (
     to_html,
     parse_entry_content,
     build_ordered_content,
-    MARKER
+    MARKER,
+    MARKER_PATTERN
 )
 
 
@@ -315,6 +316,68 @@ class TestParseEntryContent(unittest.TestCase):
         parsed_original, agents = parse_entry_content(content)
         self.assertEqual(parsed_original.strip(), original.strip())
         self.assertEqual(agents["summary"].strip(), agent_content.strip())
+    
+    def test_sanitized_marker_with_extra_attributes(self):
+        """Test parsing marker after Miniflux sanitizer adds extra attributes"""
+        # Miniflux sanitizer adds rel and referrerpolicy attributes to <a> tags
+        agent_content = "<p>Agent result</p>"
+        sanitized_marker = '<a id="mfai-summary" href="#mfai-summary" rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
+        original = "<p>Original content</p>"
+        content = agent_content + sanitized_marker + original
+        
+        parsed_original, agents = parse_entry_content(content)
+        self.assertEqual(parsed_original, original)
+        self.assertIn("summary", agents)
+        self.assertEqual(agents["summary"], agent_content)
+    
+    def test_sanitized_marker_multiple_agents(self):
+        """Test parsing multiple sanitized markers"""
+        summary_content = "<p>Summary</p>"
+        translate_content = "<p>Translation</p>"
+        # Simulate sanitized markers with extra attributes
+        summary_marker = '<a id="mfai-summary" href="#mfai-summary" rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
+        translate_marker = '<a id="mfai-translate" href="#mfai-translate" rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
+        original = "<p>Original</p>"
+        
+        content = (summary_content + summary_marker + 
+                  translate_content + translate_marker + 
+                  original)
+        
+        parsed_original, agents = parse_entry_content(content)
+        self.assertEqual(parsed_original, original)
+        self.assertEqual(len(agents), 2)
+        self.assertEqual(agents["summary"], summary_content)
+        self.assertEqual(agents["translate"], translate_content)
+    
+    def test_legacy_marker_backward_compatibility(self):
+        """Test parsing legacy div-based markers for backward compatibility"""
+        agent_content = "<p>Agent result</p>"
+        legacy_marker = '<div data-ai-agent="summary" style="display: none;"></div>'
+        original = "<p>Original content</p>"
+        content = agent_content + legacy_marker + original
+        
+        parsed_original, agents = parse_entry_content(content)
+        self.assertEqual(parsed_original, original)
+        self.assertIn("summary", agents)
+        self.assertEqual(agents["summary"], agent_content)
+    
+    def test_legacy_marker_multiple_agents(self):
+        """Test parsing multiple legacy markers"""
+        summary_content = "<p>Summary</p>"
+        translate_content = "<p>Translation</p>"
+        summary_marker = '<div data-ai-agent="summary" style="display: none;"></div>'
+        translate_marker = '<div data-ai-agent="translate" style="display: none;"></div>'
+        original = "<p>Original</p>"
+        
+        content = (summary_content + summary_marker + 
+                  translate_content + translate_marker + 
+                  original)
+        
+        parsed_original, agents = parse_entry_content(content)
+        self.assertEqual(parsed_original, original)
+        self.assertEqual(len(agents), 2)
+        self.assertEqual(agents["summary"], summary_content)
+        self.assertEqual(agents["translate"], translate_content)
 
 
 class TestBuildOrderedContent(unittest.TestCase):
