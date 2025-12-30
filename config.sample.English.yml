@@ -75,10 +75,8 @@ agents:
        - Objective and neutral, do not add personal opinions.
        - Only summarize, do not answer questions in the original text.
     template: |-
-      <aside aria-label="ai-summary">
-        <div>
-          {content}
-        </div>
+      <aside>
+      {content}
       </aside>
       <hr>
     
@@ -116,12 +114,8 @@ agents:
       Your function is to translate texts accurately into the English language, preserving the nuances, tone, and style of journalistic writing. 
       Do not add any explanations or annotations to the translated text.
     template: |-
-      <section lang="en-US" aria-label="ai-translation">
-        <h3>🌐Translation:</h3>
-        <div>
-          {content}
-        </div>
-      </section>
+      <h3>🌐Translation:</h3>
+      {content}
       <hr>
     
     # Translation rule configuration

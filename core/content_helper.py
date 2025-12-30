@@ -9,8 +9,9 @@ import tiktoken
 
 from common import config
 
-MARKER = '<div data-ai-agent="{}" style="display: none;"></div>'
-MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
+MARKER = '<a id="mfai-{0}" href="#mfai-{0}"></a>'
+MARKER_PATTERN = r'<a\s+id="mfai-([^"]+)"\s+href="#mfai-[^"]+"[^>]*></a>'
+_LEGACY_MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
 
 _TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
 
@@ -22,8 +23,7 @@ _MISTUNE_INSTANCE = mistune.create_markdown(escape=False, hard_wrap=True, plugin
 
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
-# Internal cache key for storing computed values in entry dict
-_CACHE_KEY = '_helper_cache'
+_CACHE_KEY = '_mfai_cache'
 
 
 def _get_cache(entry: Dict) -> Dict:
@@ -140,8 +140,9 @@ def parse_entry_content(content: str) -> Tuple[str, Dict[str, str]]:
     Returns:
         Tuple of (original_content, existing_agent_content_dict)
     """
-
-    matches = list(re.finditer(MARKER_PATTERN, content))
+    # Combined pattern to match both new and legacy markers
+    combined_pattern = f'(?:{MARKER_PATTERN})|(?:{_LEGACY_MARKER_PATTERN})'
+    matches = list(re.finditer(combined_pattern, content))
     
     if not matches:
         return content, {}
@@ -149,7 +150,7 @@ def parse_entry_content(content: str) -> Tuple[str, Dict[str, str]]:
     agent_contents = {}
     
     for i, match in enumerate(matches):
-        agent_name = match.group(1)
+        agent_name = match.group(1) or match.group(2)
         start_pos = match.start()
         
         # Extract content before this marker

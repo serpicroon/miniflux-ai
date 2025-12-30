@@ -75,10 +75,8 @@ agents:
        - 客观中立，不添加个人观点。
        - 仅总结，不回答原文中的问题。
     template: |-
-      <aside aria-label="ai-summary">
-        <div>
-          {content}
-        </div>
+      <aside>
+      {content}
       </aside>
       <hr>
     
@@ -115,12 +113,8 @@ agents:
       Your function is to translate texts accurately into the Chinese language, preserving the nuances, tone, and style of journalistic writing. 
       Do not add any explanations or annotations to the translated text.
     template: |-
-      <section lang="zh-CN" aria-label="ai-translation">
-        <h3>🌐翻译：</h3>
-        <div>
-          {content}
-        </div>
-      </section>
+      <h3>🌐翻译：</h3>
+      {content}
       <hr>
     
     # 翻译规则配置
