@@ -12,10 +12,14 @@ from typing import NoReturn
 import schedule
 
 from app import create_app
-from common import config, logger, shutdown_event
+from common import config, shutdown_event
+from common.logger import get_logger
+
 from core import handle_unread_entries, generate_daily_digest, init_digest_feed, get_miniflux_client
 from core.entry_handler import initialize_executor, shutdown_executor
 
+
+logger = get_logger(__name__)
 
 def run_flask_server() -> None:
     """Start the Flask web application server."""

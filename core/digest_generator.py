@@ -4,9 +4,11 @@ import time
 import traceback
 from typing import Any, Dict, List, Optional
 
-from common.logger import logger, log_entry_error
+from common.logger import get_logger
 from common import config, SUMMARY_FILE_LOCK, SUMMARY_FILE, DIGEST_FILE
 from core.llm_client import get_completion
+
+logger = get_logger(__name__)
 
 
 def generate_digest_content() -> str | None:
@@ -130,7 +132,7 @@ def save_summary(entry: Dict[str, Any], summary_content: str) -> None:
                 f.write(json_line + '\n')
             
     except Exception as e:
-        log_entry_error(entry, message=f"Failed to save summary: {e}")
+        logger.error_entry(entry, message=f"Failed to save summary: {e}")
         logger.error(traceback.format_exc())
 
 
@@ -220,5 +222,3 @@ def _save_digest_content(content: str) -> None:
     except Exception as e:
         logger.error(f'Failed to save digest content: {e}')
         raise
-
-

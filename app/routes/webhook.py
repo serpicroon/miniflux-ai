@@ -10,9 +10,11 @@ import traceback
 
 from flask import Blueprint, request, abort, jsonify
 
-from common import config, logger
+from common import config
+from common.logger import get_logger
 from core import process_entries_concurrently
 
+logger = get_logger(__name__)
 webhook_bp = Blueprint('webhook', __name__)
 
 
