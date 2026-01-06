@@ -140,7 +140,7 @@ class _Logger:
         """
         Unified logging method for entry processing with standardized format.
         
-        Log output order: entry_id, agent_name, message, title, content
+        Log output order: entry_id, agent_name, title, message, content
         
         Args:
             entry: Entry dictionary, can be None
@@ -153,23 +153,22 @@ class _Logger:
         entry = entry or {}
         entry_id = entry.get('id', 'unknown')
         
-        # Build log parts in order: entry_id, agent_name, message, title, content
         parts = [f"Entry {entry_id}"]
         
         if agent_name:
             parts.append(f"Agent {agent_name}")
 
-        if message:
-            message_preview = message.replace("\n", "\\n")
-            if len(message_preview) > 1000:
-                message_preview = message_preview[:1000] + "..."
-            parts.append(message_preview)
-        
         if include_title and entry.get('title'):
             entry_title = entry['title']
             if len(entry_title) > 100:
                 entry_title = entry_title[:100] + "..."
             parts.append(f"Title: {entry_title}")
+        
+        if message:
+            message_preview = message.replace("\n", "\\n")
+            if len(message_preview) > 1000:
+                message_preview = message_preview[:1000] + "..."
+            parts.append(message_preview)
         
         # Content only logged at DEBUG level to avoid verbose logs
         if include_content and level == logging.DEBUG and entry.get('content'):
