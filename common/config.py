@@ -1,5 +1,4 @@
 import sys
-import inspect
 from typing import Dict
 from yaml import safe_load
 

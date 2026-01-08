@@ -9,8 +9,10 @@ import re
 from enum import Enum
 from typing import List, Dict, Any, Optional, Tuple
 
-from common.logger import logger
+from common.logger import get_logger
 from core.content_helper import get_content_text, get_content_length
+
+logger = get_logger(__name__)
 
 
 class FieldType(Enum):
@@ -266,4 +268,3 @@ def match_rules(entry: Dict[str, Any],
     
     # Step 3: No allow_rules defined, default to keep.
     return True
-

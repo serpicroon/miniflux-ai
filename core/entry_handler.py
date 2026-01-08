@@ -3,10 +3,13 @@ import time
 import traceback
 from typing import Optional, List, Dict, Any, Tuple
 
-from common import config, logger, shutdown_event
+from common import config, shutdown_event
+from common.logger import get_logger
+
 from core.entry_processor import process_entry
 from core.miniflux_client import get_miniflux_client
 
+logger = get_logger(__name__)
 # Global thread pool for concurrent entry processing
 _executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
 

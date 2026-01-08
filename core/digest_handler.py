@@ -6,7 +6,10 @@ from typing import Any, Dict, List, Optional
 from feedgen.feed import FeedGenerator
 from miniflux import ClientError
 
-from common import logger, config
+from common import config
+from common.logger import get_logger
+
+logger = get_logger(__name__)
 from core.digest_generator import generate_digest_content, load_digest_content
 from core.content_helper import to_html
 from core.miniflux_client import get_miniflux_client

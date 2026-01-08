@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from common import config
 from common.exceptions import LLMResponseError
-from common.logger import logger, log_entry_debug, log_entry_info, log_entry_error
+from common.logger import get_logger
 from common.models import AgentResult, Agent
 from core.content_helper import (
     to_markdown,
@@ -17,6 +17,8 @@ from core.digest_generator import save_summary
 from core.llm_client import get_completion
 from core.miniflux_client import get_miniflux_client
 from core.rule_matcher import match_rules
+
+logger = get_logger(__name__)
 
 # Entry processing cache to avoid duplicate processing
 _ENTRY_CACHE_LOCK = threading.Lock()
@@ -34,20 +36,20 @@ def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
         Dictionary of agent_name: agent_result
     """
     try:
-        log_entry_debug(entry, message="Starting processing")
+        logger.debug_entry(entry, message="Starting processing")
         
         # Parse entry content once to get original content and existing agent results
         original_content, existing_agent_contents = parse_entry_content(entry['content'])
 
         if not original_content.strip():
-            log_entry_debug(entry, message="Entry content is empty, skipping")
+            logger.debug_entry(entry, message="Entry content is empty, skipping")
             return {}
         
         original_entry = entry.copy()
         original_entry['content'] = original_content
         
         if existing_agent_contents:
-            log_entry_debug(original_entry, message=f"Found existing agent contents: {list(existing_agent_contents.keys())}")
+            logger.debug_entry(original_entry, message=f"Found existing agent contents: {list(existing_agent_contents.keys())}")
         
         # process entry with config.agents excluding keys in existing agent contents
         new_agents = {k: v for k, v in config.agents.items() if k not in existing_agent_contents.keys()}
@@ -60,14 +62,14 @@ def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
             ordered_content = build_ordered_content(all_agent_contents, original_content)
             
             get_miniflux_client().update_entry(entry['id'], content=ordered_content)
-            log_entry_info(entry, message=f"Updated successfully with new agent contents: {list(new_agent_contents.keys())}")
+            logger.info_entry(entry, message=f"Updated successfully with new agent contents: {list(new_agent_contents.keys())}")
         else:
-            log_entry_debug(entry, message="No new agent contents generated, entry unchanged")
+            logger.debug_entry(entry, message="No new agent contents generated, entry unchanged")
 
         return new_agent_results
             
     except Exception as e:
-        log_entry_error(entry, message=f"Processing failed: {e}")
+        logger.error_entry(entry, message=f"Processing failed: {e}")
         raise
 
 
@@ -89,12 +91,12 @@ def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Agent]) 
     entry_id = entry['id']
     with _ENTRY_CACHE_LOCK:
         if entry_id in _ENTRY_CACHE:
-            log_entry_debug(entry, message="Entry already processed (cache hit), skipping")
+            logger.debug_entry(entry, message="Entry already processed (cache hit), skipping")
             return {}
         _ENTRY_CACHE[entry_id] = True
 
-    log_entry_debug(entry, message=f"Processing entry with agents: {list(agents.keys())}")
-    log_entry_debug(entry, message="Processing entry content", include_title=False, include_content=True)
+    logger.debug_entry(entry, message=f"Processing entry with agents: {list(agents.keys())}")
+    logger.debug_entry(entry, message="Processing entry content", include_title=False, include_content=True)
 
     agent_results: Dict[str, AgentResult] = {}
     # config.agents is ordered, required Python 3.7+
@@ -118,28 +120,28 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, A
     """
     # Check if entry matches agent's rules
     if not match_rules(entry, agent.allow_rules, agent.deny_rules):
-        log_entry_debug(entry, agent_name=agent_name, message="Filtered out by rules")
+        logger.debug_entry(entry, agent_name=agent_name, message="Filtered out by rules")
         return AgentResult.filtered()
 
-    log_entry_debug(entry, agent_name=agent_name, message="Starting processing")
+    logger.debug_entry(entry, agent_name=agent_name, message="Starting processing")
     
     try:
         agent_content = _get_agent_content(agent_name, agent, entry)
-        log_entry_info(entry, agent_name=agent_name, message=f'Content: {agent_content}', include_title=True)
+        logger.info_entry(entry, agent_name=agent_name, message=f'Content: {agent_content}', include_title=True)
 
         if config.digest_schedule and agent_name == 'summary':
             # save summary to file for AI digest feature
             save_summary(entry, agent_content)
 
         formatted_content = _format_agent_content(agent, agent_content)
-        log_entry_debug(entry, agent_name=agent_name, message=f"Formatted content: {formatted_content}", include_title=True)
+        logger.debug_entry(entry, agent_name=agent_name, message=f"Formatted content: {formatted_content}", include_title=True)
         
         return AgentResult.success(formatted_content)
     except LLMResponseError as e:
-        log_entry_error(entry, agent_name=agent_name, message=f"LLM error: {e}")
+        logger.error_entry(entry, agent_name=agent_name, message=f"LLM error: {e}")
         return AgentResult.error(e, message=str(e))
     except Exception as e:
-        log_entry_error(entry, agent_name=agent_name, message=f"Processing failed: {e}")
+        logger.error_entry(entry, agent_name=agent_name, message=f"Processing failed: {e}")
         logger.error(traceback.format_exc())
         return AgentResult.error(e, message=str(e))
 
@@ -169,11 +171,11 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: Dict[str, Any]) -> 
         system_prompt = prompt
         user_prompt = f"Process only the [Content]. The [Title] is for context.\n\n[Title]\n{title}\n\n[Content]\n{content_markdown}"
 
-    log_entry_debug(entry, agent_name=agent_name, message=f"LLM request sent: system_prompt: {system_prompt}; user_prompt: {user_prompt}")
+    logger.debug_entry(entry, agent_name=agent_name, message=f"LLM request sent: system_prompt: {system_prompt}; user_prompt: {user_prompt}")
 
     agent_content = get_completion(system_prompt, user_prompt)
     
-    log_entry_debug(entry, agent_name=agent_name, message=f"LLM response received: {agent_content}")
+    logger.debug_entry(entry, agent_name=agent_name, message=f"LLM response received: {agent_content}")
     return agent_content
 
 

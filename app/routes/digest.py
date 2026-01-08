@@ -8,9 +8,10 @@ import traceback
 
 from flask import Blueprint, Response
 
-from common import logger
+from common.logger import get_logger
 from core.digest_handler import generate_digest_rss
 
+logger = get_logger(__name__)
 digest_bp = Blueprint('digest', __name__)
 
 

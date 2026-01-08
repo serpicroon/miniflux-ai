@@ -1,8 +1,13 @@
 import time
 import traceback
 from functools import cache
+
 import miniflux
-from common import config, logger
+
+from common import config
+from common.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @cache

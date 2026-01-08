@@ -2,7 +2,7 @@ import threading
 from pathlib import Path
 
 from .config import config
-from .logger import logger
+from .logger import get_logger
 from .exceptions import LLMResponseError
 
 

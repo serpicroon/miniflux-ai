@@ -2,8 +2,10 @@ from openai import OpenAI
 from ratelimit import limits, sleep_and_retry
 
 from common import config
-from common.logger import logger
+from common.logger import get_logger
 from common.exceptions import LLMResponseError
+
+logger = get_logger(__name__)
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are Miniflux AI Agent, skillfully interpreting RSS content "
