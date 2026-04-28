@@ -11,7 +11,6 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-      scope: "deps"
     pull-request-branch-name:
       separator: "/"
     labels:
@@ -32,7 +31,6 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-      scope: "ci"
     pull-request-branch-name:
       separator: "/"
     labels:
