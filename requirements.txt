@@ -63,7 +63,7 @@ mistune==3.2.0
     # via miniflux-ai (pyproject.toml)
 openai==2.26.0
     # via miniflux-ai (pyproject.toml)
-pydantic==2.12.5
+pydantic==2.13.3
     # via openai
 pydantic-core==2.41.5
     # via pydantic
