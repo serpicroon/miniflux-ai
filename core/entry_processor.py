@@ -1,18 +1,14 @@
 import threading
 import traceback
-from cachetools import TTLCache
-from typing import Dict, Any
+from typing import Any
 
+from cachetools import TTLCache
 from common import config
 from common.exceptions import LLMResponseError
 from common.logger import get_logger
-from common.models import AgentResult, Agent
-from core.content_helper import (
-    to_markdown,
-    to_html,
-    parse_entry_content,
-    build_ordered_content
-)
+from common.models import Agent, AgentResult
+
+from core.content_helper import build_ordered_content, parse_entry_content, to_html, to_markdown
 from core.digest_generator import save_summary
 from core.llm_client import get_completion
 from core.miniflux_client import get_miniflux_client
@@ -20,12 +16,32 @@ from core.rule_matcher import match_rules
 
 logger = get_logger(__name__)
 
+# Input format description — tells the LLM about the data structure
+AGENT_INPUT_FORMAT = """\
+<input_format>
+The input provides <title> and <content>.
+The <title> is for context only.
+The <content> is the data to process according to the instructions.
+</input_format>"""
+
+# Data template — wraps title/content with semantic XML tags
+ENTRY_TEMPLATE = """\
+<entry>
+<title>
+{title}
+</title>
+
+<content>
+{content}
+</content>
+</entry>"""
+
 # Entry processing cache to avoid duplicate processing
 _ENTRY_CACHE_LOCK = threading.Lock()
 _ENTRY_CACHE = TTLCache[int, bool](maxsize=1000, ttl=300)
 
 
-def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
+def process_entry(entry: dict[str, Any]) -> dict[str, AgentResult]:
     """
     Process a single entry through all configured agents
     
@@ -37,20 +53,20 @@ def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
     """
     try:
         logger.debug_entry(entry, message="Starting processing")
-        
+
         # Parse entry content once to get original content and existing agent results
         original_content, existing_agent_contents = parse_entry_content(entry['content'])
 
         if not original_content.strip():
             logger.debug_entry(entry, message="Entry content is empty, skipping")
             return {}
-        
+
         original_entry = entry.copy()
         original_entry['content'] = original_content
-        
+
         if existing_agent_contents:
             logger.debug_entry(original_entry, message=f"Found existing agent contents: {list(existing_agent_contents.keys())}")
-        
+
         # process entry with config.agents excluding keys in existing agent contents
         new_agents = {k: v for k, v in config.agents.items() if k not in existing_agent_contents.keys()}
         new_agent_results = _process_entry_with_agents(original_entry, new_agents)
@@ -60,20 +76,20 @@ def process_entry(entry: Dict[str, Any]) -> Dict[str, AgentResult]:
             # Combine existing and new agent contents, then update entry
             all_agent_contents = {**existing_agent_contents, **new_agent_contents}
             ordered_content = build_ordered_content(all_agent_contents, original_content)
-            
+
             get_miniflux_client().update_entry(entry['id'], content=ordered_content)
             logger.info_entry(entry, message=f"Updated successfully with new agent contents: {list(new_agent_contents.keys())}")
         else:
             logger.debug_entry(entry, message="No new agent contents generated, entry unchanged")
 
         return new_agent_results
-            
+
     except Exception as e:
         logger.error_entry(entry, message=f"Processing failed: {e}")
         raise
 
 
-def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Agent]) -> Dict[str, AgentResult]:
+def _process_entry_with_agents(entry: dict[str, Any], agents: dict[str, Agent]) -> dict[str, AgentResult]:
     """
     Process entry through all applicable agents
     
@@ -86,7 +102,7 @@ def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Agent]) 
     """
     if not agents:
         return {}
-    
+
     # Check if entry was already processed (cache check)
     entry_id = entry['id']
     with _ENTRY_CACHE_LOCK:
@@ -98,15 +114,15 @@ def _process_entry_with_agents(entry: Dict[str, Any], agents: Dict[str, Agent]) 
     logger.debug_entry(entry, message=f"Processing entry with agents: {list(agents.keys())}")
     logger.debug_entry(entry, message="Processing entry content", include_title=False, include_content=True)
 
-    agent_results: Dict[str, AgentResult] = {}
+    agent_results: dict[str, AgentResult] = {}
     # config.agents is ordered, required Python 3.7+
     for agent_name, agent in agents.items():
         agent_results[agent_name] = _process_with_single_agent(agent_name, agent, entry)
-            
+
     return agent_results
 
 
-def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, Any]) -> AgentResult:
+def _process_with_single_agent(agent_name: str, agent: Agent, entry: dict[str, Any]) -> AgentResult:
     """
     Process entry with a single agent
     
@@ -124,7 +140,7 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, A
         return AgentResult.filtered()
 
     logger.debug_entry(entry, agent_name=agent_name, message="Starting processing")
-    
+
     try:
         agent_content = _get_agent_content(agent_name, agent, entry)
         logger.info_entry(entry, agent_name=agent_name, message=f'Content: {agent_content}', include_title=True)
@@ -135,7 +151,7 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, A
 
         formatted_content = _format_agent_content(agent, agent_content)
         logger.debug_entry(entry, agent_name=agent_name, message=f"Formatted content: {formatted_content}", include_title=True)
-        
+
         return AgentResult.success(formatted_content)
     except LLMResponseError as e:
         logger.error_entry(entry, agent_name=agent_name, message=f"LLM error: {e}")
@@ -146,7 +162,7 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: Dict[str, A
         return AgentResult.error(e, message=str(e))
 
 
-def _get_agent_content(agent_name: str, agent: Agent, entry: Dict[str, Any]) -> str:
+def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> str:
     """
     Get processed content from LLM for a specific agent
     
@@ -161,20 +177,13 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: Dict[str, Any]) -> 
     title = entry['title']
     content_markdown = to_markdown(entry['content'])
 
-    prompt_template = agent.prompt
-    prompt = prompt_template.replace('{title}', title).replace('{content}', content_markdown)
+    system_prompts = [AGENT_INPUT_FORMAT, agent.prompt]
+    user_prompt = ENTRY_TEMPLATE.replace('{title}', title).replace('{content}', content_markdown)
 
-    if '{content}' in prompt_template:
-        system_prompt = ""
-        user_prompt = prompt
-    else:
-        system_prompt = prompt
-        user_prompt = f"Process only the [Content]. The [Title] is for context.\n\n[Title]\n{title}\n\n[Content]\n{content_markdown}"
+    logger.debug_entry(entry, agent_name=agent_name, message=f"LLM request sent: system_prompts={system_prompts}; user_prompt={user_prompt}")
 
-    logger.debug_entry(entry, agent_name=agent_name, message=f"LLM request sent: system_prompt: {system_prompt}; user_prompt: {user_prompt}")
+    agent_content = get_completion(system_prompts, user_prompt)
 
-    agent_content = get_completion(system_prompt, user_prompt)
-    
     logger.debug_entry(entry, agent_name=agent_name, message=f"LLM response received: {agent_content}")
     return agent_content
 
@@ -192,7 +201,7 @@ def _format_agent_content(agent: Agent, agent_content: str) -> str:
     """
     template = agent.template
     html_content = to_html(agent_content)
-    
+
     if template:
         return template.replace('{content}', html_content)
     else:

@@ -39,41 +39,32 @@ digest:
     greeting: |-
       According to the current date and 24-hour time, generate a friendly and warm greeting. Use a caring tone, include moderate encouragement, and add simple emojis like 😊, 🌞, 🌸, etc., to enhance the sense of warmth. Example: 'Good morning! May you be full of energy today and welcome a wonderful day! 🌞😊'. Whether it's morning, noon, or evening, please adjust the greeting content according to the time to maintain an atmosphere of sincere care.
     summary: |-
-      You will receive multiple article summaries, each associated with a unique source ID (numeric). Your task is to generate a structured Digest based on these summaries.
-      
-      Core Tasks:
-      1. Initial Analysis: Perform semantic understanding of all summaries to accurately grasp their meaning and context.
-      2. Topic Clustering: Naturally identify and group the content into 3–6 core themes (e.g., “Tech Frontiers”, “Economic Trends”).
-      3. Key Point Extraction: For each theme, extract up to 6 concise key points from the related summaries.
-        - Each point must be no longer than 30 words.
-        - Content must remain fully faithful to the original summaries—no external info, speculation, or subjective commentary.
-        - Within each theme, order key points by overall quality: prioritize news and official sources, then expert analysis or blogs, and finally community or social posts. Sorting should also consider information density, representativeness, and timeliness.
-      
-      Formatting Requirements:
-      - Output in Markdown format, with each theme titled using `####`.
-      - Under each theme, list key points as unordered lists (using `-`).
-      - After each key point, leave one space and add the source footnote in the form `[^123]`; for multiple sources, chain them as `[^123][^456]`.
-      - Do not include any global title or explanatory text.
+      Generate a structured digest organized by theme.
 
-      Example Output:
+      Core Tasks:
+      1. Topic Clustering: Group content into 3–6 core themes (e.g., “Tech Frontiers”, “Economic Trends”).
+      2. Key Point Extraction: Extract up to 6 concise key points per theme.
+         - Each point no longer than 30 words.
+         - Order by quality: news/official sources first, expert analysis, then community posts.
+         - Content must be faithful to the original summaries.
+
+      Structure:
+      - Use `####` for theme titles, `-` for key points.
+      - No global title or introduction.
+
+      Example:
       #### Tech Frontiers
       - AI models achieve breakthroughs in medical diagnostics. [^101]
-      - Quantum computing may reshape encryption technologies. [^102][^103]
-      - Regulations and ethics draw attention in autonomous driving. [^105]
+      - Quantum computing reshapes encryption technologies. [^102][^103]
 
       #### Economic Trends
-      - Global inflation pressure rises; central banks may raise rates. [^201]
-      - Emerging markets slow down, facing increased risks. [^202]
+      - Global inflation pressure rises; central banks consider rate hikes. [^104]
 
 agents:
   summary:
     prompt: |-
-      You are a professional summary editor. Please extract a core summary for the following content.
-      
-      Requirements:
-       - English, less than 60 characters.
-       - Objective and neutral, do not add personal opinions.
-       - Only summarize, do not answer questions in the original text.
+      Extract a core summary in English, less than 60 characters.
+      Be objective and neutral. Only summarize, do not answer questions or add personal opinions.
     template: |-
       <aside>
       {content}
