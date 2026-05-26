@@ -1,18 +1,18 @@
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-
-from feedgen.feed import FeedGenerator
-from miniflux import ClientError
+from typing import Any
 
 from common import config
 from common.logger import get_logger
+from feedgen.feed import FeedGenerator
+from miniflux import ClientError
+
+from core.content_helper import to_html
+from core.digest_generator import generate_digest_content, load_digest_content
+from core.miniflux_client import get_miniflux_client
 
 logger = get_logger(__name__)
-from core.digest_generator import generate_digest_content, load_digest_content
-from core.content_helper import to_html
-from core.miniflux_client import get_miniflux_client
 
 FEED_URL = f"{config.digest_url}/rss/digest"
 
@@ -22,18 +22,18 @@ def init_digest_feed() -> None:
     Initialize AI digest feed if it doesn't exist in Miniflux
     """
     try:
-        logger.debug('Checking if AI digest feed exists')
-        
+        logger.debug("Checking if AI digest feed exists")
+
         feeds = get_miniflux_client().get_feeds()
         digest_feed_id = _find_digest_feed_id(feeds)
-        
+
         if digest_feed_id is None:
             _create_digest_feed()
         else:
-            logger.debug(f'Digest feed already exists with ID: {digest_feed_id}')
-            
+            logger.debug(f"Digest feed already exists with ID: {digest_feed_id}")
+
     except Exception as e:
-        logger.error(f'Failed to initialize AI digest feed: {e}')
+        logger.error(f"Failed to initialize AI digest feed: {e}")
         raise
 
 
@@ -41,36 +41,36 @@ def generate_daily_digest() -> None:
     """
     Generate daily digest from AI summaries and refresh corresponding feed
     """
-    logger.info('Starting daily digest generation')
-    
+    logger.info("Starting daily digest generation")
+
     try:
         if generate_digest_content():
             _refresh_digest_feed()
-            logger.info('Daily digest generation completed successfully')
+            logger.info("Daily digest generation completed successfully")
     except Exception as e:
-        logger.error(f'Failed to generate daily digest: {e}')
+        logger.error(f"Failed to generate daily digest: {e}")
         logger.error(traceback.format_exc())
 
 
 def generate_digest_rss() -> str:
     """
     Generate RSS feed content
-    
+
     Returns:
         RSS XML content as string
     """
-    logger.info('Generating Digest RSS feed')
-    
+    logger.info("Generating Digest RSS feed")
+
     feed_generator = _create_rss_feed_generator()
     _add_welcome_entry(feed_generator)
-    
+
     digest_content = load_digest_content()
     if digest_content:
         _add_digest_entry(feed_generator, digest_content)
-        logger.debug(f'Successfully loaded digest content: {len(digest_content)} characters')
+        logger.debug(f"Successfully loaded digest content: {len(digest_content)} characters")
     else:
-        logger.debug('No digest content available, RSS feed contains only welcome entry')
-        
+        logger.debug("No digest content available, RSS feed contains only welcome entry")
+
     return feed_generator.rss_str(pretty=True)
 
 
@@ -79,9 +79,9 @@ def _create_rss_feed_generator() -> FeedGenerator:
     feed_generator = FeedGenerator()
     feed_generator.id(config.digest_url)
     feed_generator.title(config.digest_name)
-    feed_generator.author({'name': 'Minifluxᴬᴵ'})
-    feed_generator.subtitle('Powered by Minifluxᴬᴵ')
-    feed_generator.link(href=config.digest_url, rel='self')
+    feed_generator.author({"name": "Minifluxᴬᴵ"})
+    feed_generator.subtitle("Powered by Minifluxᴬᴵ")
+    feed_generator.link(href=config.digest_url, rel="self")
     return feed_generator
 
 
@@ -90,25 +90,25 @@ def _add_welcome_entry(feed_generator: FeedGenerator) -> None:
     welcome_entry = feed_generator.add_entry()
     welcome_entry.id(config.digest_url)
     welcome_entry.link(href=config.digest_url)
-    welcome_entry.author({'name': 'Minifluxᴬᴵ'})
-    welcome_entry.title(f'Welcome to {config.digest_name}')
+    welcome_entry.author({"name": "Minifluxᴬᴵ"})
+    welcome_entry.title(f"Welcome to {config.digest_name}")
 
 
 def _add_digest_entry(feed_generator: FeedGenerator, digest_content: str) -> None:
     """Add daily digest entry to the RSS feed"""
-    logger.debug('Adding daily digest entry to RSS feed')
-    
-    timestamp = time.strftime('%Y-%m-%d-%H-%M')
-    date_str = time.strftime('%Y-%m-%d')
+    logger.debug("Adding daily digest entry to RSS feed")
+
+    timestamp = time.strftime("%Y-%m-%d-%H-%M")
+    date_str = time.strftime("%Y-%m-%d")
     time_period = _get_digest_time_period(datetime.today().hour)
-    
+
     digest_entry = feed_generator.add_entry()
-    digest_entry.id(f'{config.digest_url}/{timestamp}')
-    digest_entry.author({'name': 'Minifluxᴬᴵ'})
-    digest_entry.title(f'{time_period} Digest for you - {date_str}')
+    digest_entry.id(f"{config.digest_url}/{timestamp}")
+    digest_entry.author({"name": "Minifluxᴬᴵ"})
+    digest_entry.title(f"{time_period} Digest for you - {date_str}")
     digest_entry.description(to_html(digest_content))
-    
-    logger.info(f'Successfully added {time_period.lower()} digest entry for {date_str}')
+
+    logger.info(f"Successfully added {time_period.lower()} digest entry for {date_str}")
 
 
 def _get_digest_time_period(hour: int) -> str:
@@ -130,14 +130,14 @@ def _get_digest_time_period(hour: int) -> str:
 def _create_digest_feed() -> None:
     """Create digest feed in Miniflux"""
     try:
-        logger.debug(f'Creating AI digest feed with URL: {FEED_URL}')
+        logger.debug(f"Creating AI digest feed with URL: {FEED_URL}")
         get_miniflux_client().create_feed(category_id=1, feed_url=FEED_URL)
-        logger.info(f'Successfully created AI digest feed in Miniflux: {FEED_URL}')
+        logger.info(f"Successfully created AI digest feed in Miniflux: {FEED_URL}")
     except ClientError as e:
-        logger.error(f'Failed to create AI digest feed in Miniflux: {e.get_error_reason()}')
+        logger.error(f"Failed to create AI digest feed in Miniflux: {e.get_error_reason()}")
         raise
     except Exception as e:
-        logger.error(f'Failed to create AI digest feed in Miniflux: {e}')
+        logger.error(f"Failed to create AI digest feed in Miniflux: {e}")
         raise
 
 
@@ -146,24 +146,24 @@ def _refresh_digest_feed() -> None:
     try:
         feeds = get_miniflux_client().get_feeds()
         digest_feed_id = _find_digest_feed_id(feeds)
-        
+
         if digest_feed_id:
-            logger.debug(f'Found AI digest feed with ID: {digest_feed_id}')
+            logger.debug(f"Found AI digest feed with ID: {digest_feed_id}")
             get_miniflux_client().refresh_feed(digest_feed_id)
-            logger.info('Successfully refreshed AI digest feed in Miniflux')
+            logger.info("Successfully refreshed AI digest feed in Miniflux")
         else:
-            logger.warning('AI digest feed not found in Miniflux')
+            logger.warning("AI digest feed not found in Miniflux")
     except ClientError as e:
-        logger.error(f'Failed to refresh AI digest feed in Miniflux: {e.get_error_reason()}')
+        logger.error(f"Failed to refresh AI digest feed in Miniflux: {e.get_error_reason()}")
         raise
     except Exception as e:
-        logger.error(f'Failed to refresh AI digest feed: {e}')
+        logger.error(f"Failed to refresh AI digest feed: {e}")
         raise
 
 
-def _find_digest_feed_id(feeds: List[Dict[str, Any]]) -> Optional[int]:
+def _find_digest_feed_id(feeds: list[dict[str, Any]]) -> int | None:
     """Find the AI digest feed ID from the list of feeds"""
     for feed in feeds:
-        if FEED_URL == feed.get('feed_url', ''):
-            return feed['id']
+        if feed.get("feed_url", "") == FEED_URL:
+            return feed["id"]
     return None
