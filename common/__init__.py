@@ -2,13 +2,12 @@ import threading
 from pathlib import Path
 
 from .config import config
-from .logger import get_logger
 from .exceptions import LLMResponseError
-
+from .logger import get_logger
 
 # File paths
-SUMMARY_FILE = Path('data/summary.dat')
-DIGEST_FILE = Path('data/digest.dat')
+SUMMARY_FILE = Path("data/summary.dat")
+DIGEST_FILE = Path("data/digest.dat")
 
 # Shared file lock to prevent concurrent read/write issues
 SUMMARY_FILE_LOCK = threading.Lock()

@@ -1,7 +1,7 @@
 import concurrent.futures
 import time
 import traceback
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any
 
 from common import config, shutdown_event
 from common.logger import get_logger
@@ -11,13 +11,13 @@ from core.miniflux_client import get_miniflux_client
 
 logger = get_logger(__name__)
 # Global thread pool for concurrent entry processing
-_executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
+_executor: concurrent.futures.ThreadPoolExecutor | None = None
 
 
 def initialize_executor() -> concurrent.futures.ThreadPoolExecutor:
     """
     Get or create the global thread pool instance (singleton pattern)
-    
+
     Returns:
         ThreadPoolExecutor: Global thread pool instance
     """
@@ -25,11 +25,10 @@ def initialize_executor() -> concurrent.futures.ThreadPoolExecutor:
     if _executor is not None:
         logger.warning("Thread pool already initialized, skipping")
         return
-    
+
     max_workers = config.llm_max_workers
     _executor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=max_workers,
-        thread_name_prefix='entry_processor'
+        max_workers=max_workers, thread_name_prefix="entry_processor"
     )
     logger.info(f"Initialized thread pool with {max_workers} workers")
 
@@ -52,7 +51,7 @@ def handle_unread_entries() -> None:
     try:
         offset = 0
         limit = 100
-        
+
         while True:
             if shutdown_event.is_set():
                 break
@@ -61,83 +60,80 @@ def handle_unread_entries() -> None:
             if total == 0 or not entries:
                 logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
                 break
-            
+
             process_entries_concurrently(entries)
-            
+
             offset += limit
             if offset >= total:
                 logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
                 break
-        
+
     except Exception as e:
         logger.error(f"Failed to fetch and process unread entries: {e}")
         logger.error(traceback.format_exc())
 
 
-def _fetch_entries_page(offset: int, limit: int) -> Tuple[int, List[Dict[str, Any]]]:
+def _fetch_entries_page(offset: int, limit: int) -> tuple[int, list[dict[str, Any]]]:
     """
     Fetch a single page of unread entries from Miniflux
-    
+
     Args:
         offset: Starting offset for pagination
         limit: Maximum number of entries to fetch
-        
+
     Returns:
         List of entries for current page, or None if no entries found
     """
     try:
         kwargs = {
-            'status': ['unread'],
-            'order': 'id',
-            'direction': 'desc',
-            'offset': offset,
-            'limit': limit
+            "status": ["unread"],
+            "order": "id",
+            "direction": "desc",
+            "offset": offset,
+            "limit": limit,
         }
         if config.entry_since > 0:
-            kwargs['after'] = config.entry_since
-        
+            kwargs["after"] = config.entry_since
+
         logger.debug(f"Fetching unread entries page with kwargs: {kwargs}")
-        
+
         response = get_miniflux_client().get_entries(**kwargs)
-        total = response.get('total', 0)
-        entries = response.get('entries', [])
-        
+        total = response.get("total", 0)
+        entries = response.get("entries", [])
+
         logger.debug(f"Fetched {len(entries)} unread entries, total: {total}, offset: {offset}")
-        
+
         return total, entries
-        
+
     except Exception as e:
         logger.error(f"Failed to fetch entries page from Miniflux: {e}")
         raise
 
 
-def process_entries_concurrently(entries: List[Dict[str, Any]]) -> None:
+def process_entries_concurrently(entries: list[dict[str, Any]]) -> None:
     """
     Process entries concurrently using thread pool
-    
+
     Args:
         entries: List of entries to process
     """
     if shutdown_event.is_set():
         return
-    
+
     logger.debug(f"Starting concurrent processing with {config.llm_max_workers} workers")
 
     start_time = time.time()
-    futures = [
-        _executor.submit(process_entry, entry) 
-        for entry in entries
-    ]
+    futures = [_executor.submit(process_entry, entry) for entry in entries]
     _wait_for_completion(futures)
 
     elapsed_time = time.time() - start_time
-    logger.info(f'Processing completed in {elapsed_time:.2f} seconds')
+    logger.info(f"Processing completed in {elapsed_time:.2f} seconds")
 
 
-def _wait_for_completion(futures: List[concurrent.futures.Future]) -> None:
+def _wait_for_completion(futures: list[concurrent.futures.Future]) -> None:
     """
     Wait for all tasks to complete and handle exceptions
-    
+
     Args:
         futures: List of Future objects
     """
@@ -145,7 +141,7 @@ def _wait_for_completion(futures: List[concurrent.futures.Future]) -> None:
     partial_count = 0
     error_count = 0
     total_count = len(futures)
-    
+
     for future in concurrent.futures.as_completed(futures):
         try:
             results = future.result()
@@ -166,5 +162,8 @@ def _wait_for_completion(futures: List[concurrent.futures.Future]) -> None:
         except Exception:
             error_count += 1
             logger.error(traceback.format_exc())
-    
-    logger.info(f"Summary - Total: {total_count}, Updated: {updated_count}, Partial: {partial_count}, Error: {error_count}")
+
+    logger.info(
+        f"Summary - Total: {total_count}, Updated: {updated_count}, "
+        f"Partial: {partial_count}, Error: {error_count}"
+    )
