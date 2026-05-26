@@ -33,7 +33,9 @@ class TestConfigLoading(unittest.TestCase):
         with open(self.temp_file_path, "w", encoding="utf-8") as f:
             f.write(config_content)
 
-        with patch("builtins.open", return_value=open(self.temp_file_path, encoding="utf8")):
+        with patch(
+            "builtins.open", return_value=open(self.temp_file_path, encoding="utf8")
+        ):
             return Config()
 
     def test_load_basic_config(self):
@@ -218,7 +220,9 @@ class TestConfigCompatibilityValidation(unittest.TestCase):
         captured_output = StringIO()
 
         with (
-            patch("builtins.open", return_value=open(self.temp_file_path, encoding="utf8")),
+            patch(
+                "builtins.open", return_value=open(self.temp_file_path, encoding="utf8")
+            ),
             patch("sys.stdout", captured_output),
             self.assertRaises(SystemExit) as cm,
         ):
@@ -229,7 +233,9 @@ class TestConfigCompatibilityValidation(unittest.TestCase):
 
         # Check that all expected strings are in output
         for expected in expected_output_contains:
-            self.assertIn(expected, output, f"Expected '{expected}' in output:\n{output}")
+            self.assertIn(
+                expected, output, f"Expected '{expected}' in output:\n{output}"
+            )
 
         return output
 
@@ -290,7 +296,8 @@ agents:
     min_content_length: 50
 """
         self._create_config_expect_exit(
-            config_content, ["Config Incompatibility Detected", "summary", "min_content_length"]
+            config_content,
+            ["Config Incompatibility Detected", "summary", "min_content_length"],
         )
 
     def test_detect_deprecated_title_style_block(self):
@@ -307,7 +314,8 @@ agents:
     style_block: "<style>...</style>"
 """
         self._create_config_expect_exit(
-            config_content, ["Config Incompatibility Detected", "summary", "title", "style_block"]
+            config_content,
+            ["Config Incompatibility Detected", "summary", "title", "style_block"],
         )
 
     def test_detect_multiple_deprecated_fields_single_agent(self):
@@ -396,7 +404,9 @@ agents:
         with open(self.temp_file_path, "w", encoding="utf-8") as f:
             f.write(config_content)
 
-        with patch("builtins.open", return_value=open(self.temp_file_path, encoding="utf8")):
+        with patch(
+            "builtins.open", return_value=open(self.temp_file_path, encoding="utf8")
+        ):
             # Should not raise SystemExit
             config = Config()
             self.assertIsNotNone(config)
@@ -414,7 +424,9 @@ agents: {}
         with open(self.temp_file_path, "w", encoding="utf-8") as f:
             f.write(config_content)
 
-        with patch("builtins.open", return_value=open(self.temp_file_path, encoding="utf8")):
+        with patch(
+            "builtins.open", return_value=open(self.temp_file_path, encoding="utf8")
+        ):
             config = Config()
             self.assertIsNotNone(config)
             self.assertEqual(len(config.agents), 0)
@@ -430,7 +442,9 @@ llm:
         with open(self.temp_file_path, "w", encoding="utf-8") as f:
             f.write(config_content)
 
-        with patch("builtins.open", return_value=open(self.temp_file_path, encoding="utf8")):
+        with patch(
+            "builtins.open", return_value=open(self.temp_file_path, encoding="utf8")
+        ):
             config = Config()
             self.assertIsNotNone(config)
             self.assertEqual(len(config.agents), 0)
@@ -465,7 +479,8 @@ agents:
         lines = output.split("\n")
         # First line should not start with whitespace
         self.assertFalse(
-            lines[0].startswith(" "), f"First line should not have leading spaces: '{lines[0]}'"
+            lines[0].startswith(" "),
+            f"First line should not have leading spaces: '{lines[0]}'",
         )
 
         # Agent list items should have exactly 2 spaces
@@ -473,7 +488,8 @@ agents:
         for line in agent_lines:
             # Should start with exactly 2 spaces
             self.assertTrue(
-                line.startswith("  - "), f"Agent line should start with '  - ': '{line}'"
+                line.startswith("  - "),
+                f"Agent line should start with '  - ': '{line}'",
             )
 
 

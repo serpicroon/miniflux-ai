@@ -13,7 +13,12 @@ from typing import NoReturn
 import schedule
 from common import config, shutdown_event
 from common.logger import get_logger
-from core import generate_daily_digest, get_miniflux_client, handle_unread_entries, init_digest_feed
+from core import (
+    generate_daily_digest,
+    get_miniflux_client,
+    handle_unread_entries,
+    init_digest_feed,
+)
 from core.entry_handler import initialize_executor, shutdown_executor
 
 from app import create_app
@@ -109,9 +114,13 @@ def main() -> NoReturn:
     initialize_application()
     setup_signal_handlers()
 
-    flask_thread = threading.Thread(target=run_flask_server, name="FlaskServer", daemon=True)
+    flask_thread = threading.Thread(
+        target=run_flask_server, name="FlaskServer", daemon=True
+    )
 
-    schedule_thread = threading.Thread(target=run_scheduler, name="Scheduler", daemon=False)
+    schedule_thread = threading.Thread(
+        target=run_scheduler, name="Scheduler", daemon=False
+    )
 
     flask_thread.start()
     logger.info("Flask server thread started")

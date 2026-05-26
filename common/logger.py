@@ -35,7 +35,9 @@ class _Logger:
 
         log = logging.getLogger(name)
         log.setLevel(config.log_level)
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         console = logging.StreamHandler()
         console.setFormatter(formatter)
         log.addHandler(console)

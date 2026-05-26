@@ -8,7 +8,12 @@ from common.exceptions import LLMResponseError
 from common.logger import get_logger
 from common.models import Agent, AgentResult
 
-from core.content_helper import build_ordered_content, parse_entry_content, to_html, to_markdown
+from core.content_helper import (
+    build_ordered_content,
+    parse_entry_content,
+    to_html,
+    to_markdown,
+)
 from core.digest_generator import save_summary
 from core.llm_client import get_completion
 from core.miniflux_client import get_miniflux_client
@@ -55,7 +60,9 @@ def process_entry(entry: dict[str, Any]) -> dict[str, AgentResult]:
         logger.debug_entry(entry, message="Starting processing")
 
         # Parse entry content once to get original content and existing agent results
-        original_content, existing_agent_contents = parse_entry_content(entry["content"])
+        original_content, existing_agent_contents = parse_entry_content(
+            entry["content"]
+        )
 
         if not original_content.strip():
             logger.debug_entry(entry, message="Entry content is empty, skipping")
@@ -71,14 +78,20 @@ def process_entry(entry: dict[str, Any]) -> dict[str, AgentResult]:
             )
 
         # process entry with config.agents excluding keys in existing agent contents
-        new_agents = {k: v for k, v in config.agents.items() if k not in existing_agent_contents}
+        new_agents = {
+            k: v for k, v in config.agents.items() if k not in existing_agent_contents
+        }
         new_agent_results = _process_entry_with_agents(original_entry, new_agents)
-        new_agent_contents = {k: v.content for k, v in new_agent_results.items() if v.is_success}
+        new_agent_contents = {
+            k: v.content for k, v in new_agent_results.items() if v.is_success
+        }
 
         if new_agent_contents:
             # Combine existing and new agent contents, then update entry
             all_agent_contents = {**existing_agent_contents, **new_agent_contents}
-            ordered_content = build_ordered_content(all_agent_contents, original_content)
+            ordered_content = build_ordered_content(
+                all_agent_contents, original_content
+            )
 
             get_miniflux_client().update_entry(entry["id"], content=ordered_content)
             logger.info_entry(
@@ -89,7 +102,9 @@ def process_entry(entry: dict[str, Any]) -> dict[str, AgentResult]:
                 ),
             )
         else:
-            logger.debug_entry(entry, message="No new agent contents generated, entry unchanged")
+            logger.debug_entry(
+                entry, message="No new agent contents generated, entry unchanged"
+            )
 
         return new_agent_results
 
@@ -118,13 +133,20 @@ def _process_entry_with_agents(
     entry_id = entry["id"]
     with _ENTRY_CACHE_LOCK:
         if entry_id in _ENTRY_CACHE:
-            logger.debug_entry(entry, message="Entry already processed (cache hit), skipping")
+            logger.debug_entry(
+                entry, message="Entry already processed (cache hit), skipping"
+            )
             return {}
         _ENTRY_CACHE[entry_id] = True
 
-    logger.debug_entry(entry, message=f"Processing entry with agents: {list(agents.keys())}")
     logger.debug_entry(
-        entry, message="Processing entry content", include_title=False, include_content=True
+        entry, message=f"Processing entry with agents: {list(agents.keys())}"
+    )
+    logger.debug_entry(
+        entry,
+        message="Processing entry content",
+        include_title=False,
+        include_content=True,
     )
 
     agent_results: dict[str, AgentResult] = {}
@@ -135,7 +157,9 @@ def _process_entry_with_agents(
     return agent_results
 
 
-def _process_with_single_agent(agent_name: str, agent: Agent, entry: dict[str, Any]) -> AgentResult:
+def _process_with_single_agent(
+    agent_name: str, agent: Agent, entry: dict[str, Any]
+) -> AgentResult:
     """
     Process entry with a single agent
 
@@ -149,7 +173,9 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: dict[str, A
     """
     # Check if entry matches agent's rules
     if not match_rules(entry, agent.allow_rules, agent.deny_rules):
-        logger.debug_entry(entry, agent_name=agent_name, message="Filtered out by rules")
+        logger.debug_entry(
+            entry, agent_name=agent_name, message="Filtered out by rules"
+        )
         return AgentResult.filtered()
 
     logger.debug_entry(entry, agent_name=agent_name, message="Starting processing")
@@ -157,7 +183,10 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: dict[str, A
     try:
         agent_content = _get_agent_content(agent_name, agent, entry)
         logger.info_entry(
-            entry, agent_name=agent_name, message=f"Content: {agent_content}", include_title=True
+            entry,
+            agent_name=agent_name,
+            message=f"Content: {agent_content}",
+            include_title=True,
         )
 
         if config.digest_schedule and agent_name == "summary":
@@ -177,7 +206,9 @@ def _process_with_single_agent(agent_name: str, agent: Agent, entry: dict[str, A
         logger.error_entry(entry, agent_name=agent_name, message=f"LLM error: {e}")
         return AgentResult.from_error(e, message=str(e))
     except Exception as e:
-        logger.error_entry(entry, agent_name=agent_name, message=f"Processing failed: {e}")
+        logger.error_entry(
+            entry, agent_name=agent_name, message=f"Processing failed: {e}"
+        )
         logger.error(traceback.format_exc())
         return AgentResult.from_error(e, message=str(e))
 
@@ -198,7 +229,9 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> 
     content_markdown = to_markdown(entry["content"])
 
     system_prompts = [AGENT_INPUT_FORMAT, agent.prompt]
-    user_prompt = ENTRY_TEMPLATE.replace("{title}", title).replace("{content}", content_markdown)
+    user_prompt = ENTRY_TEMPLATE.replace("{title}", title).replace(
+        "{content}", content_markdown
+    )
 
     logger.debug_entry(
         entry,

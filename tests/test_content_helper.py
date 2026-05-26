@@ -297,7 +297,13 @@ class TestParseEntryContent(unittest.TestCase):
         translate_marker = MARKER.format("translate")
         original = "<p>Original</p>"
 
-        content = summary_content + summary_marker + translate_content + translate_marker + original
+        content = (
+            summary_content
+            + summary_marker
+            + translate_content
+            + translate_marker
+            + original
+        )
 
         parsed_original, agents = parse_entry_content(content)
         self.assertEqual(parsed_original, original)
@@ -357,7 +363,13 @@ class TestParseEntryContent(unittest.TestCase):
         )
         original = "<p>Original</p>"
 
-        content = summary_content + summary_marker + translate_content + translate_marker + original
+        content = (
+            summary_content
+            + summary_marker
+            + translate_content
+            + translate_marker
+            + original
+        )
 
         parsed_original, agents = parse_entry_content(content)
         self.assertEqual(parsed_original, original)
@@ -382,10 +394,18 @@ class TestParseEntryContent(unittest.TestCase):
         summary_content = "<p>Summary</p>"
         translate_content = "<p>Translation</p>"
         summary_marker = '<div data-ai-agent="summary" style="display: none;"></div>'
-        translate_marker = '<div data-ai-agent="translate" style="display: none;"></div>'
+        translate_marker = (
+            '<div data-ai-agent="translate" style="display: none;"></div>'
+        )
         original = "<p>Original</p>"
 
-        content = summary_content + summary_marker + translate_content + translate_marker + original
+        content = (
+            summary_content
+            + summary_marker
+            + translate_content
+            + translate_marker
+            + original
+        )
 
         parsed_original, agents = parse_entry_content(content)
         self.assertEqual(parsed_original, original)
@@ -418,15 +438,22 @@ class TestBuildOrderedContent(unittest.TestCase):
         self.assertIn(MARKER.format("summary"), result)
         self.assertIn("<p>Original</p>", result)
         # Check order: agent content, marker, original
-        self.assertLess(result.index("<p>Summary</p>"), result.index(MARKER.format("summary")))
-        self.assertLess(result.index(MARKER.format("summary")), result.index("<p>Original</p>"))
+        self.assertLess(
+            result.index("<p>Summary</p>"), result.index(MARKER.format("summary"))
+        )
+        self.assertLess(
+            result.index(MARKER.format("summary")), result.index("<p>Original</p>")
+        )
 
     @patch("core.content_helper.config")
     def test_multiple_agent_contents(self, mock_config):
         """Test building content with multiple agent contents in order"""
         mock_config.agents.keys.return_value = ["summary", "translate"]
 
-        agent_contents = {"summary": "<p>Summary</p>", "translate": "<p>Translation</p>"}
+        agent_contents = {
+            "summary": "<p>Summary</p>",
+            "translate": "<p>Translation</p>",
+        }
         original = "<p>Original</p>"
 
         result = build_ordered_content(agent_contents, original)
@@ -453,7 +480,10 @@ class TestBuildOrderedContent(unittest.TestCase):
         mock_config.agents.keys.return_value = ["translate", "summary"]
 
         # Dict provides them in different order
-        agent_contents = {"summary": "<p>Summary</p>", "translate": "<p>Translation</p>"}
+        agent_contents = {
+            "summary": "<p>Summary</p>",
+            "translate": "<p>Translation</p>",
+        }
         original = "<p>Original</p>"
 
         result = build_ordered_content(agent_contents, original)
@@ -496,7 +526,10 @@ class TestIntegration(unittest.TestCase):
         original = "<p>Original article content</p>"
 
         # Simulate agent processing
-        agent_contents = {"summary": "<p>This is a summary</p>", "translate": "<p>这是翻译</p>"}
+        agent_contents = {
+            "summary": "<p>This is a summary</p>",
+            "translate": "<p>这是翻译</p>",
+        }
 
         # Build ordered content
         built_content = build_ordered_content(agent_contents, original)
@@ -508,7 +541,9 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(parsed_original, original)
         self.assertEqual(len(parsed_agent_contents), 2)
         self.assertEqual(parsed_agent_contents["summary"], agent_contents["summary"])
-        self.assertEqual(parsed_agent_contents["translate"], agent_contents["translate"])
+        self.assertEqual(
+            parsed_agent_contents["translate"], agent_contents["translate"]
+        )
 
     def test_html_markdown_roundtrip(self):
         """Test HTML -> Markdown -> HTML conversion"""

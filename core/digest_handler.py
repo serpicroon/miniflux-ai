@@ -67,9 +67,13 @@ def generate_digest_rss() -> str:
     digest_content = load_digest_content()
     if digest_content:
         _add_digest_entry(feed_generator, digest_content)
-        logger.debug(f"Successfully loaded digest content: {len(digest_content)} characters")
+        logger.debug(
+            f"Successfully loaded digest content: {len(digest_content)} characters"
+        )
     else:
-        logger.debug("No digest content available, RSS feed contains only welcome entry")
+        logger.debug(
+            "No digest content available, RSS feed contains only welcome entry"
+        )
 
     return feed_generator.rss_str(pretty=True)
 
@@ -134,7 +138,9 @@ def _create_digest_feed() -> None:
         get_miniflux_client().create_feed(category_id=1, feed_url=FEED_URL)
         logger.info(f"Successfully created AI digest feed in Miniflux: {FEED_URL}")
     except ClientError as e:
-        logger.error(f"Failed to create AI digest feed in Miniflux: {e.get_error_reason()}")
+        logger.error(
+            f"Failed to create AI digest feed in Miniflux: {e.get_error_reason()}"
+        )
         raise
     except Exception as e:
         logger.error(f"Failed to create AI digest feed in Miniflux: {e}")
@@ -154,7 +160,9 @@ def _refresh_digest_feed() -> None:
         else:
             logger.warning("AI digest feed not found in Miniflux")
     except ClientError as e:
-        logger.error(f"Failed to refresh AI digest feed in Miniflux: {e.get_error_reason()}")
+        logger.error(
+            f"Failed to refresh AI digest feed in Miniflux: {e.get_error_reason()}"
+        )
         raise
     except Exception as e:
         logger.error(f"Failed to refresh AI digest feed: {e}")
