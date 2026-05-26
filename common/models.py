@@ -80,7 +80,11 @@ class AgentResult:
         Returns:
             AgentResult with ERROR status
         """
-        return cls(status=AgentResultStatus.ERROR, error=error, error_message=message or str(error))
+        return cls(
+            status=AgentResultStatus.ERROR,
+            error=error,
+            error_message=message or str(error),
+        )
 
     @property
     def is_success(self) -> bool:

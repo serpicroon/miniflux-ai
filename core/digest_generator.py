@@ -71,12 +71,16 @@ def _generate_greeting() -> str:
 
     try:
         return get_completion(
-            config.digest_prompts["greeting"], f"Current time: {current_time}", temperature=0.8
+            config.digest_prompts["greeting"],
+            f"Current time: {current_time}",
+            temperature=0.8,
         )
     except Exception as e:
         logger.warning(f"Failed to generate greeting, retrying once: {e}")
         return get_completion(
-            config.digest_prompts["greeting"], f"Current time: {current_time}", temperature=0.8
+            config.digest_prompts["greeting"],
+            f"Current time: {current_time}",
+            temperature=0.8,
         )
 
 

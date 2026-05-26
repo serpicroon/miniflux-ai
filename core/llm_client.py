@@ -40,7 +40,11 @@ def get_completion(
     messages = [{"role": "system", "content": p} for p in prompts]
     messages.append({"role": "user", "content": user_prompt})
 
-    kwargs = {"model": config.llm_model, "messages": messages, "timeout": config.llm_timeout}
+    kwargs = {
+        "model": config.llm_model,
+        "messages": messages,
+        "timeout": config.llm_timeout,
+    }
 
     if temperature is not None:
         kwargs["temperature"] = temperature

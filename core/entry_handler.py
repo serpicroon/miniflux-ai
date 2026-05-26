@@ -101,7 +101,9 @@ def _fetch_entries_page(offset: int, limit: int) -> tuple[int, list[dict[str, An
         total = response.get("total", 0)
         entries = response.get("entries", [])
 
-        logger.debug(f"Fetched {len(entries)} unread entries, total: {total}, offset: {offset}")
+        logger.debug(
+            f"Fetched {len(entries)} unread entries, total: {total}, offset: {offset}"
+        )
 
         return total, entries
 
@@ -120,7 +122,9 @@ def process_entries_concurrently(entries: list[dict[str, Any]]) -> None:
     if shutdown_event.is_set():
         return
 
-    logger.debug(f"Starting concurrent processing with {config.llm_max_workers} workers")
+    logger.debug(
+        f"Starting concurrent processing with {config.llm_max_workers} workers"
+    )
 
     start_time = time.time()
     futures = [_executor.submit(process_entry, entry) for entry in entries]

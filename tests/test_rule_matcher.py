@@ -537,7 +537,10 @@ class TestRealWorldScenarios(unittest.TestCase):
         }
 
         # Typical translation config: only translate specific sites
-        allow_rules = ["NeverMatch=保留此项", "FeedSiteURL=https://foreign-site\\.com.*"]
+        allow_rules = [
+            "NeverMatch=保留此项",
+            "FeedSiteURL=https://foreign-site\\.com.*",
+        ]
         deny_rules = []
 
         result = match_rules(entry, allow_rules, deny_rules)
@@ -568,7 +571,10 @@ class TestRealWorldScenarios(unittest.TestCase):
             "feed": {"site_url": "https://example.com"},
         }
 
-        deny_rules = ["EntryTitle=(?i)\\bsave\\s+\\$\\d+", "EntryTitle=(?i)\\$\\d+\\s+off"]
+        deny_rules = [
+            "EntryTitle=(?i)\\bsave\\s+\\$\\d+",
+            "EntryTitle=(?i)\\$\\d+\\s+off",
+        ]
 
         result = match_rules(spam_entry, [], deny_rules)
         self.assertFalse(result)  # Blocked by spam filter
@@ -578,7 +584,10 @@ class TestRealWorldScenarios(unittest.TestCase):
         entry = {
             "title": "Article",
             "url": "https://example.com/article",
-            "feed": {"site_url": "https://example.com", "category": {"title": "Development"}},
+            "feed": {
+                "site_url": "https://example.com",
+                "category": {"title": "Development"},
+            },
         }
 
         allow_rules = ["FeedCategoryTitle=(?i)development"]

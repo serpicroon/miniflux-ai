@@ -132,7 +132,9 @@ def get_entry_field_value(entry: dict[str, Any], field_name: str) -> str:
     return ""
 
 
-def _match_numeric_operator(value: int, operator: str, field_name: str = "numeric field") -> bool:
+def _match_numeric_operator(
+    value: int, operator: str, field_name: str = "numeric field"
+) -> bool:
     """
     Generic numeric comparison for rule fields with operator syntax.
 
@@ -176,7 +178,9 @@ def _match_numeric_operator(value: int, operator: str, field_name: str = "numeri
         elif operator.startswith("between:"):
             range_str = operator[8:]
             if "," not in range_str:
-                logger.warning(f"Invalid between operator format for {field_name}: {operator}")
+                logger.warning(
+                    f"Invalid between operator format for {field_name}: {operator}"
+                )
                 return False
             min_val, max_val = range_str.split(",", 1)
             min_threshold = int(min_val.strip())
@@ -241,7 +245,9 @@ def _match_any_rule(entry: dict[str, Any], rules: list[str]) -> bool:
     return False
 
 
-def match_rules(entry: dict[str, Any], allow_rules: list[str], deny_rules: list[str]) -> bool:
+def match_rules(
+    entry: dict[str, Any], allow_rules: list[str], deny_rules: list[str]
+) -> bool:
     """
     Determine if entry should be processed based on allow and deny rules.
 

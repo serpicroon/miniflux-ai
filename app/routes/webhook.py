@@ -60,7 +60,9 @@ def miniflux_ai():
     except Exception as e:
         logger.error(f"Failed to process webhook entries: {e}")
         logger.error(traceback.format_exc())
-        return jsonify({"status": "error", "message": "An internal error has occurred."}), 500
+        return jsonify(
+            {"status": "error", "message": "An internal error has occurred."}
+        ), 500
 
 
 def _verify_webhook_signature() -> None:
@@ -80,6 +82,8 @@ def _verify_webhook_signature() -> None:
     if not webhook_secret or not signature:
         abort(403)
 
-    hmac_signature = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
+    hmac_signature = hmac.new(
+        webhook_secret.encode(), payload, hashlib.sha256
+    ).hexdigest()
     if not hmac.compare_digest(hmac_signature, signature):
         abort(403)
