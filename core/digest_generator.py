@@ -7,25 +7,10 @@ from typing import Any
 from common import DIGEST_FILE, SUMMARY_FILE, SUMMARY_FILE_LOCK, config
 from common.logger import get_logger
 
-from core.llm_client import get_completion
+from core.llm_client import chat_completion
+from core.prompt_schema import DIGEST_PROMPT_SCHEMA
 
 logger = get_logger(__name__)
-
-# Input ID prefix
-INPUT_FORMAT_PROMPT = """\
-<input_format>
-Each entry is prefixed with its unique ID: [^ID].
-For example: [^175799] Summary text.
-</input_format>"""
-
-# Citation via [^ID]
-CITATION_PROMPT = """\
-<citation>
-Always use [^ID] format for citations. Chain multiple sources without spaces: [^123][^456].
-Unless otherwise specified, append [^ID] directly after the relevant key point.
-
-Verify: before writing, check every [^ID] in your draft against the input.
-</citation>"""
 
 
 def generate_digest_content() -> str | None:
@@ -62,26 +47,18 @@ def _generate_greeting() -> str:
 
     Returns:
         Generated greeting string
-
-    Raises:
-        Exception: If both attempts fail
     """
     current_time = time.strftime("%B %d, %Y at %I:%M %p")
     logger.debug(f"Generating greeting for time: {current_time}")
 
-    try:
-        return get_completion(
-            config.digest_prompts["greeting"],
-            f"Current time: {current_time}",
-            temperature=0.8,
-        )
-    except Exception as e:
-        logger.warning(f"Failed to generate greeting, retrying once: {e}")
-        return get_completion(
-            config.digest_prompts["greeting"],
-            f"Current time: {current_time}",
-            temperature=0.8,
-        )
+    return chat_completion(
+        [
+            ("system", config.digest_prompts["greeting"]),
+            ("user", f"Current time: {current_time}"),
+        ],
+        temperature=0.8,
+        retries=1,
+    )
 
 
 def _generate_summary(summaries: list[dict[str, Any]]) -> str:
@@ -93,24 +70,22 @@ def _generate_summary(summaries: list[dict[str, Any]]) -> str:
 
     Returns:
         Generated summary content string with entry links
-
-    Raises:
-        Exception: If both attempts fail
     """
     logger.debug("Generating digest content from summaries")
     contents = "\n\n".join(f"[^{s['id']}] {s['content']}" for s in summaries)
 
-    system_prompts = [INPUT_FORMAT_PROMPT, CITATION_PROMPT]
+    prompts = [
+        ("system", DIGEST_PROMPT_SCHEMA.input_format),
+        ("system", DIGEST_PROMPT_SCHEMA.citation_format),
+        ("system", DIGEST_PROMPT_SCHEMA.citation_verification),
+    ]
 
     config_prompt = (config.digest_prompts or {}).get("summary", "")
     if config_prompt:
-        system_prompts.append(config_prompt)
+        prompts.append(("system", config_prompt))
+    prompts.append(("user", contents))
 
-    try:
-        summary = get_completion(system_prompts, contents)
-    except Exception as e:
-        logger.warning(f"Failed to generate summary, retrying once: {e}")
-        summary = get_completion(system_prompts, contents)
+    summary = chat_completion(prompts, retries=1)
 
     if config.digest_entry_url:
         summary = _apply_entry_links(summary, config.digest_entry_url)

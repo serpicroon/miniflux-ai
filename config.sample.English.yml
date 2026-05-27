@@ -16,6 +16,10 @@ llm:
   # timeout: 60        # Request timeout in seconds (default: 60)
   # max_workers: 4     # Concurrent request limit (default: 4)
   # RPM: 15            # Requests per minute limit (default: 1000)
+  # prompt_processing: strict  # none | strict (default) | single
+  #   none:   Pass-through multiple messages as-is, for OpenAI and models supporting multiple system messages
+  #   strict: Merge same-role messages, demote non-first system to <instruction>, for DeepSeek etc.
+  #   single: Collapse all into a single user message, for models without system role support
 
 digest:
   # Service URL for RSS feed generation (use container name for Docker Compose)

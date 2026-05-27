@@ -25,6 +25,9 @@ class Config:
         self.llm_timeout = self._get_config_value("llm", "timeout", 60)
         self.llm_max_workers = self._get_config_value("llm", "max_workers", 4)
         self.llm_RPM = self._get_config_value("llm", "RPM", 1000)
+        self.llm_prompt_processing = self._get_config_value(
+            "llm", "prompt_processing", "strict"
+        )
 
         self.digest_name = self._get_config_value(
             "digest", "name", "֎Minifluxᴬᴵ Digest for you"
