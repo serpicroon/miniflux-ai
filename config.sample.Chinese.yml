@@ -16,6 +16,10 @@ llm:
   # timeout: 60        # 请求超时时间，单位秒 (默认: 60)
   # max_workers: 4     # 并发请求数限制 (默认: 4)
   # RPM: 15            # 每分钟请求数限制 (默认: 1000)
+  # prompt_processing: strict  # none | strict（默认）| single
+  #   none:   原样透传多条消息，适用于 OpenAI 等多 system 消息的模型
+  #   strict: 合并同角色消息，非首条 system 降级为 <instruction>，适用于 DeepSeek 等
+  #   single: 全部合并为单条 user 消息，适用于不支持 system 角色的模型
 
 digest:
   # RSS 订阅源生成的服务地址 (Docker Compose 环境使用容器名)

@@ -15,31 +15,12 @@ from core.content_helper import (
     to_markdown,
 )
 from core.digest_generator import save_summary
-from core.llm_client import get_completion
+from core.llm_client import chat_completion
 from core.miniflux_client import get_miniflux_client
 from core.rule_matcher import match_rules
+from core.prompt_schema import ENTRY_PROMPT_SCHEMA
 
 logger = get_logger(__name__)
-
-# Input format description — tells the LLM about the data structure
-AGENT_INPUT_FORMAT = """\
-<input_format>
-The input provides <title> and <content>.
-The <title> is for context only.
-The <content> is the data to process according to the instructions.
-</input_format>"""
-
-# Data template — wraps title/content with semantic XML tags
-ENTRY_TEMPLATE = """\
-<entry>
-<title>
-{title}
-</title>
-
-<content>
-{content}
-</content>
-</entry>"""
 
 # Entry processing cache to avoid duplicate processing
 _ENTRY_CACHE_LOCK = threading.Lock()
@@ -228,18 +209,20 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> 
     title = entry["title"]
     content_markdown = to_markdown(entry["content"])
 
-    system_prompts = [AGENT_INPUT_FORMAT, agent.prompt]
-    user_prompt = ENTRY_TEMPLATE.replace("{title}", title).replace(
-        "{content}", content_markdown
-    )
+    user_prompt = ENTRY_PROMPT_SCHEMA.render(title=title, content=content_markdown)
+    prompts = [
+        ("system", ENTRY_PROMPT_SCHEMA.format_description),
+        ("system", agent.prompt),
+        ("user", user_prompt),
+    ]
 
     logger.debug_entry(
         entry,
         agent_name=agent_name,
-        message=f"LLM request sent: system_prompts={system_prompts}; user_prompt={user_prompt}",
+        message=f"LLM request sent: prompts={prompts}",
     )
 
-    agent_content = get_completion(system_prompts, user_prompt)
+    agent_content = chat_completion(prompts)
 
     logger.debug_entry(
         entry, agent_name=agent_name, message=f"LLM response received: {agent_content}"

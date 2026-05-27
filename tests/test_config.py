@@ -98,6 +98,22 @@ agents: {}
         self.assertEqual(config.llm_timeout, 60)  # Default
         self.assertEqual(config.llm_max_workers, 4)  # Default
         self.assertEqual(config.llm_RPM, 1000)  # Default
+        self.assertEqual(config.llm_prompt_processing, "strict")  # Default
+
+    def test_load_prompt_processing_explicit(self):
+        """Test explicit prompt_processing config values"""
+        for mode in ("none", "strict", "single"):
+            with self.subTest(mode=mode):
+                config_content = f"""
+miniflux:
+  base_url: http://miniflux.local
+llm:
+  base_url: http://llm.local
+  prompt_processing: {mode}
+agents: {{}}
+"""
+                config = self._create_config(config_content)
+                self.assertEqual(config.llm_prompt_processing, mode)
 
     def test_load_agents_basic(self):
         """Test loading basic agent configuration"""
