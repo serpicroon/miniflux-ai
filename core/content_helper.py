@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from common import config
 from markdownify import markdownify as md
 
-MARKER = '<a id="mfai-{0}" href="#mfai-{0}"></a>'
-MARKER_PATTERN = r'<a\s+id="mfai-([^"]+)"\s+href="#mfai-[^"]+"[^>]*></a>'
+MARKER = '<a href="#mfai-{0}" id="mfai-{0}"></a>'
+MARKER_PATTERN = r'<a\s+href="#mfai-([^"]+)"\s+id="mfai-[^"]+"[^>]*></a>'
 _LEGACY_MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
 
 _TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")

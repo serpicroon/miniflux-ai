@@ -334,10 +334,10 @@ class TestParseEntryContent(unittest.TestCase):
 
     def test_sanitized_marker_with_extra_attributes(self):
         """Test parsing marker after Miniflux sanitizer adds extra attributes"""
-        # Miniflux sanitizer adds rel and referrerpolicy attributes to <a> tags
+        # Miniflux sanitizer reorders attributes (href first) and adds rel/referrerpolicy
         agent_content = "<p>Agent result</p>"
         sanitized_marker = (
-            '<a id="mfai-summary" href="#mfai-summary" '
+            '<a href="#mfai-summary" id="mfai-summary" '
             'rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
         )
         original = "<p>Original content</p>"
@@ -352,13 +352,13 @@ class TestParseEntryContent(unittest.TestCase):
         """Test parsing multiple sanitized markers"""
         summary_content = "<p>Summary</p>"
         translate_content = "<p>Translation</p>"
-        # Simulate sanitized markers with extra attributes
+        # Simulate sanitized markers with reordered attrs and extra attributes
         summary_marker = (
-            '<a id="mfai-summary" href="#mfai-summary" '
+            '<a href="#mfai-summary" id="mfai-summary" '
             'rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
         )
         translate_marker = (
-            '<a id="mfai-translate" href="#mfai-translate" '
+            '<a href="#mfai-translate" id="mfai-translate" '
             'rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
         )
         original = "<p>Original</p>"
@@ -427,7 +427,7 @@ class TestBuildOrderedContent(unittest.TestCase):
     @patch("core.content_helper.config")
     def test_single_agent_content(self, mock_config):
         """Test building content with single agent content"""
-        mock_config.agents.keys.return_value = ["summary"]
+        mock_config.agents = {"summary": None}
 
         agent_contents = {"summary": "<p>Summary</p>"}
         original = "<p>Original</p>"
@@ -448,7 +448,7 @@ class TestBuildOrderedContent(unittest.TestCase):
     @patch("core.content_helper.config")
     def test_multiple_agent_contents(self, mock_config):
         """Test building content with multiple agent contents in order"""
-        mock_config.agents.keys.return_value = ["summary", "translate"]
+        mock_config.agents = {"summary": None, "translate": None}
 
         agent_contents = {
             "summary": "<p>Summary</p>",
@@ -477,7 +477,7 @@ class TestBuildOrderedContent(unittest.TestCase):
     def test_respects_config_order(self, mock_config):
         """Test that agent order follows config, not dict order"""
         # Config defines order as: translate, summary
-        mock_config.agents.keys.return_value = ["translate", "summary"]
+        mock_config.agents = {"translate": None, "summary": None}
 
         # Dict provides them in different order
         agent_contents = {
@@ -497,7 +497,7 @@ class TestBuildOrderedContent(unittest.TestCase):
     @patch("core.content_helper.config")
     def test_skips_missing_agents(self, mock_config):
         """Test that missing agents in contents are skipped"""
-        mock_config.agents.keys.return_value = ["summary", "translate", "custom"]
+        mock_config.agents = {"summary": None, "translate": None, "custom": None}
 
         agent_contents = {
             "summary": "<p>Summary</p>"
@@ -520,7 +520,7 @@ class TestIntegration(unittest.TestCase):
     @patch("core.content_helper.config")
     def test_full_workflow(self, mock_config):
         """Test complete workflow: build, parse, rebuild"""
-        mock_config.agents.keys.return_value = ["summary", "translate"]
+        mock_config.agents = {"summary": None, "translate": None}
 
         # Original content
         original = "<p>Original article content</p>"
@@ -544,6 +544,22 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(
             parsed_agent_contents["translate"], agent_contents["translate"]
         )
+
+    def test_sanitized_marker_reordered(self):
+        """Test parsing marker with href before id (Miniflux x/net v0.55.0 reorder)"""
+        agent_content = "<p>Agent result</p>"
+        # Miniflux 2.3.1's sanitizer reorders attributes: href first, id second
+        reordered_marker = (
+            '<a href="#mfai-summary" id="mfai-summary" '
+            'rel="noopener noreferrer" referrerpolicy="no-referrer"></a>'
+        )
+        original = "<p>Original content</p>"
+        content = agent_content + reordered_marker + original
+
+        parsed_original, agents = parse_entry_content(content)
+        self.assertEqual(parsed_original, original)
+        self.assertIn("summary", agents)
+        self.assertEqual(agents["summary"], agent_content)
 
     def test_html_markdown_roundtrip(self):
         """Test HTML -> Markdown -> HTML conversion"""
