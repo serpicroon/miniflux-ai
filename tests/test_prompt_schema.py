@@ -46,7 +46,9 @@ class TestActionPromptSchema(unittest.TestCase):
         rendered = ACTION_PROMPT_SCHEMA.render(["star", "save"])
 
         self.assertIn("- star: bookmark the entry (star or favorite)", rendered)
-        self.assertIn("- save: send the entry to configured third-party services", rendered)
+        self.assertIn(
+            "- save: send the entry to configured third-party services", rendered
+        )
         self.assertNotIn("- read:", rendered)
 
     def test_contains_no_action_guidance(self):

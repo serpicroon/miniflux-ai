@@ -83,9 +83,7 @@ class TestExecuteAgent(unittest.TestCase):
         prompts = mock_chat.call_args[0][0]
 
         self.assertEqual(len(prompts), 4)
-        self.assertIn(
-            "<action_instructions>", prompts[3][1]
-        )
+        self.assertIn("<action_instructions>", prompts[3][1])
         self.assertIn("- read: mark the entry as read", prompts[3][1])
 
     @patch("core.entry_processor.chat_completion")
@@ -112,9 +110,7 @@ class TestProcessWithSingleAgent(unittest.TestCase):
     def test_filtered_by_rules(self, mock_rules, mock_chat):
         mock_rules.return_value = False
 
-        result = _process_with_single_agent(
-            "summary", make_agent(), make_entry()
-        )
+        result = _process_with_single_agent("summary", make_agent(), make_entry())
 
         self.assertTrue(result.is_filtered)
         mock_chat.assert_not_called()
@@ -178,9 +174,7 @@ class TestProcessWithSingleAgent(unittest.TestCase):
         mock_rules.return_value = True
         mock_chat.side_effect = LLMResponseError("boom")
 
-        result = _process_with_single_agent(
-            "summary", make_agent(), make_entry()
-        )
+        result = _process_with_single_agent("summary", make_agent(), make_entry())
 
         self.assertTrue(result.is_error)
         self.assertIn("boom", result.error_message)
@@ -191,9 +185,7 @@ class TestProcessWithSingleAgent(unittest.TestCase):
         mock_rules.return_value = True
         mock_chat.side_effect = RuntimeError("unexpected")
 
-        result = _process_with_single_agent(
-            "summary", make_agent(), make_entry()
-        )
+        result = _process_with_single_agent("summary", make_agent(), make_entry())
 
         self.assertTrue(result.is_error)
 
@@ -236,9 +228,7 @@ class TestApplyEntryAction(unittest.TestCase):
         with patch(
             "core.entry_processor.get_miniflux_client", return_value=mock_client
         ):
-            _apply_entry_action(
-                make_entry(), {"summary": self._success("read")}
-            )
+            _apply_entry_action(make_entry(), {"summary": self._success("read")})
 
         mock_client.update_entries.assert_called_once_with([12345], "read")
         mock_client.toggle_bookmark.assert_not_called()
@@ -248,9 +238,7 @@ class TestApplyEntryAction(unittest.TestCase):
         with patch(
             "core.entry_processor.get_miniflux_client", return_value=mock_client
         ):
-            _apply_entry_action(
-                make_entry(), {"summary": self._success("star")}
-            )
+            _apply_entry_action(make_entry(), {"summary": self._success("star")})
 
         mock_client.toggle_bookmark.assert_called_once_with(12345)
         mock_client.save_entry.assert_not_called()
@@ -260,9 +248,7 @@ class TestApplyEntryAction(unittest.TestCase):
         with patch(
             "core.entry_processor.get_miniflux_client", return_value=mock_client
         ):
-            _apply_entry_action(
-                make_entry(), {"summary": self._success("save")}
-            )
+            _apply_entry_action(make_entry(), {"summary": self._success("save")})
 
         mock_client.save_entry.assert_called_once_with(12345)
 
@@ -298,9 +284,7 @@ class TestApplyEntryAction(unittest.TestCase):
             "core.entry_processor.get_miniflux_client", return_value=mock_client
         ):
             # Should not raise despite the failure
-            _apply_entry_action(
-                make_entry(), {"summary": self._success("read")}
-            )
+            _apply_entry_action(make_entry(), {"summary": self._success("read")})
 
 
 class TestProcessEntry(unittest.TestCase):
@@ -328,7 +312,9 @@ class TestProcessEntry(unittest.TestCase):
         self.assertEqual(results["summary"].action, "read")
         # Content updated first: entry content contains summary + marker
         args = mock_client.update_entry.call_args
-        self.assertEqual(args.kwargs["content"].strip().endswith("<p>Original body</p>"), True)
+        self.assertEqual(
+            args.kwargs["content"].strip().endswith("<p>Original body</p>"), True
+        )
         self.assertIn("Summary text", args.kwargs["content"])
         # Action applied after content update
         mock_client.update_entries.assert_called_once_with([12345], "read")

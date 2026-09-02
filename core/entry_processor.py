@@ -246,9 +246,7 @@ def _process_with_single_agent(
         return AgentResult.from_error(e, message=str(e))
 
 
-def _execute_agent(
-    agent_name: str, agent: Agent, entry: dict[str, Any]
-) -> str:
+def _execute_agent(agent_name: str, agent: Agent, entry: dict[str, Any]) -> str:
     """
     Get LLM response for a specific agent
 
