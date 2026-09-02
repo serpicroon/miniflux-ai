@@ -163,6 +163,27 @@ agents:
         agent = config.agents["summary"]
         self.assertEqual(agent.allow_rules, [])
         self.assertEqual(agent.deny_rules, [])
+        self.assertEqual(agent.allow_actions, [])
+
+    def test_load_agents_allow_actions(self):
+        """Test loading agent with allow_actions"""
+        config_content = """
+miniflux:
+  base_url: http://miniflux.local
+llm:
+  base_url: http://llm.local
+agents:
+  summary:
+    prompt: "Mark invitations as read, otherwise summarize"
+    template: '<div>{content}</div>'
+    allow_actions:
+      - read
+      - star
+"""
+        config = self._create_config(config_content)
+
+        agent = config.agents["summary"]
+        self.assertEqual(agent.allow_actions, ["read", "star"])
 
     def test_load_multiple_agents(self):
         """Test loading multiple agents"""
@@ -400,6 +421,31 @@ agents:
         # Check proper formatting with newlines
         self.assertIn("  - summary (allow_list)", output)
         self.assertIn("  - translate (deny_list, min_content_length)", output)
+
+    def test_detect_unknown_allow_actions(self):
+        """Test detection of unknown action names in allow_actions"""
+        config_content = """
+miniflux:
+  base_url: http://miniflux.local
+llm:
+  base_url: http://llm.local
+agents:
+  summary:
+    prompt: "Summarize"
+    template: '<div>{content}</div>'
+    allow_actions:
+      - read
+      - raed
+"""
+        self._create_config_expect_exit(
+            config_content,
+            [
+                "Config Error Detected",
+                "unknown actions in allow_actions",
+                "Supported actions: read, star, save",
+                "summary (raed)",
+            ],
+        )
 
     def test_valid_config_no_exit(self):
         """Test that valid config does not trigger exit"""

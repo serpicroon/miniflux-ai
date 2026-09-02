@@ -53,7 +53,7 @@ def _generate_greeting() -> str:
 
     return chat_completion(
         [
-            ("system", config.digest_prompts["greeting"]),
+            ("user", config.digest_prompts["greeting"]),
             ("user", f"Current time: {current_time}"),
         ],
         temperature=0.8,

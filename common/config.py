@@ -2,7 +2,7 @@ import sys
 
 from yaml import safe_load
 
-from common.models import Agent
+from common.models import ACTION_DEFINITIONS, Agent
 
 
 class Config:
@@ -63,6 +63,7 @@ class Config:
                 template=agent_config.get("template", ""),
                 allow_rules=agent_config.get("allow_rules", []),
                 deny_rules=agent_config.get("deny_rules", []),
+                allow_actions=agent_config.get("allow_actions", []),
             )
 
         return agents
@@ -112,8 +113,45 @@ class Config:
                 "https://github.com/serpicroon/miniflux-ai"
             )
 
-            print(error_message)
-            sys.exit(1)
+            self._exit_with_config_error(error_message)
+
+        # Check for unknown action names in allow_actions
+        invalid_action_agents = []
+        for agent_name, agent_config in agents_config.items():
+            if not isinstance(agent_config, dict):
+                continue
+
+            invalid_actions = [
+                action
+                for action in agent_config.get("allow_actions", [])
+                if action not in ACTION_DEFINITIONS
+            ]
+
+            if invalid_actions:
+                invalid_action_agents.append(
+                    f"{agent_name} ({', '.join(invalid_actions)})"
+                )
+
+        if invalid_action_agents:
+            agents_list = "\n".join(f"  - {agent}" for agent in invalid_action_agents)
+            error_message = (
+                "⚠️  Config Error Detected!\n"
+                "\n"
+                "Your config.yml uses unknown actions in allow_actions.\n"
+                f"Supported actions: {', '.join(ACTION_DEFINITIONS)}\n"
+                "Detected:\n"
+                f"{agents_list}\n"
+                "\n"
+                "For migration guide and examples, visit:\n"
+                "https://github.com/serpicroon/miniflux-ai"
+            )
+
+            self._exit_with_config_error(error_message)
+
+    @staticmethod
+    def _exit_with_config_error(error_message: str):
+        print(error_message)
+        sys.exit(1)
 
 
 config = Config()

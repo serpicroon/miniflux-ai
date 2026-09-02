@@ -10,6 +10,7 @@ from common.models import Agent, AgentResult
 
 from core.content_helper import (
     build_ordered_content,
+    extract_action,
     parse_entry_content,
     to_html,
     to_markdown,
@@ -18,7 +19,7 @@ from core.digest_generator import save_summary
 from core.llm_client import chat_completion
 from core.miniflux_client import get_miniflux_client
 from core.rule_matcher import match_rules
-from core.prompt_schema import ENTRY_PROMPT_SCHEMA
+from core.prompt_schema import ACTION_PROMPT_SCHEMA, ENTRY_PROMPT_SCHEMA
 
 logger = get_logger(__name__)
 
@@ -87,11 +88,57 @@ def process_entry(entry: dict[str, Any]) -> dict[str, AgentResult]:
                 entry, message="No new agent contents generated, entry unchanged"
             )
 
+        # Apply after content update so a failed update retries the whole
+        # entry (including the action) on the next run
+        _apply_entry_action(entry, new_agent_results)
+
         return new_agent_results
 
     except Exception as e:
         logger.error_entry(entry, message=f"Processing failed: {e}")
         raise
+
+
+def _apply_entry_action(
+    entry: dict[str, Any], agent_results: dict[str, AgentResult]
+) -> None:
+    """
+    Apply the action from the first agent (config order) that produced one
+
+    Action failures are degraded to warnings: the entry content update has
+    already marked the agents as processed, so retrying could re-apply
+    non-idempotent actions like toggling a bookmark.
+
+    Args:
+        entry: Entry dictionary to process
+        agent_results: Dictionary of agent_name: agent_result
+    """
+    for agent_name, result in agent_results.items():
+        if not result.action:
+            continue
+
+        entry_id = entry["id"]
+        action = result.action
+        client = get_miniflux_client()
+
+        try:
+            if action == "read":
+                client.update_entries([entry_id], "read")
+            elif action == "star":
+                client.toggle_bookmark(entry_id)
+            elif action == "save":
+                client.save_entry(entry_id)
+
+            logger.info_entry(
+                entry, agent_name=agent_name, message=f"Action applied: {action}"
+            )
+        except Exception as e:
+            logger.warning_entry(
+                entry, agent_name=agent_name, message=f"Action '{action}' failed: {e}"
+            )
+
+        # Only the first agent (in config order) that produced an action wins
+        break
 
 
 def _process_entry_with_agents(
@@ -162,27 +209,32 @@ def _process_with_single_agent(
     logger.debug_entry(entry, agent_name=agent_name, message="Starting processing")
 
     try:
-        agent_content = _get_agent_content(agent_name, agent, entry)
+        agent_response = _execute_agent(agent_name, agent, entry)
+        action, agent_content = extract_action(agent_response)
+
+        if action and action not in agent.allow_actions:
+            message = f"Action: {action} (ignored), Content: {agent_content}"
+            action = None
+        else:
+            message = f"Action: {action}, Content: {agent_content}"
+
         logger.info_entry(
-            entry,
-            agent_name=agent_name,
-            message=f"Content: {agent_content}",
-            include_title=True,
+            entry, agent_name=agent_name, message=message, include_title=True
         )
 
-        if config.digest_schedule and agent_name == "summary":
+        if config.digest_schedule and agent_name == "summary" and agent_content:
             # save summary to file for AI digest feature
             save_summary(entry, agent_content)
 
-        formatted_content = _format_agent_content(agent, agent_content)
+        templated_content = _apply_agent_template(agent, agent_content)
         logger.debug_entry(
             entry,
             agent_name=agent_name,
-            message=f"Formatted content: {formatted_content}",
+            message=f"Templated content: {templated_content}",
             include_title=True,
         )
 
-        return AgentResult.success(formatted_content)
+        return AgentResult.success(templated_content, action=action)
     except LLMResponseError as e:
         logger.error_entry(entry, agent_name=agent_name, message=f"LLM error: {e}")
         return AgentResult.from_error(e, message=str(e))
@@ -194,9 +246,11 @@ def _process_with_single_agent(
         return AgentResult.from_error(e, message=str(e))
 
 
-def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> str:
+def _execute_agent(
+    agent_name: str, agent: Agent, entry: dict[str, Any]
+) -> str:
     """
-    Get processed content from LLM for a specific agent
+    Get LLM response for a specific agent
 
     Args:
         agent_name: Name of the agent
@@ -204,17 +258,19 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> 
         entry: Entry dictionary to process
 
     Returns:
-        str: Processed content from LLM
+        str: Raw LLM response
     """
     title = entry["title"]
     content_markdown = to_markdown(entry["content"])
 
-    user_prompt = ENTRY_PROMPT_SCHEMA.render(title=title, content=content_markdown)
     prompts = [
-        ("system", ENTRY_PROMPT_SCHEMA.format_description),
-        ("system", agent.prompt),
-        ("user", user_prompt),
+        ("user", ENTRY_PROMPT_SCHEMA.format_description),
+        ("user", ENTRY_PROMPT_SCHEMA.render(title=title, content=content_markdown)),
+        ("user", agent.prompt),
     ]
+
+    if agent.allow_actions:
+        prompts.append(("user", ACTION_PROMPT_SCHEMA.render(agent.allow_actions)))
 
     logger.debug_entry(
         entry,
@@ -222,15 +278,17 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> 
         message=f"LLM request sent: prompts={prompts}",
     )
 
-    agent_content = chat_completion(prompts)
+    agent_response = chat_completion(prompts)
 
     logger.debug_entry(
-        entry, agent_name=agent_name, message=f"LLM response received: {agent_content}"
+        entry,
+        agent_name=agent_name,
+        message=f"LLM response received: {agent_response}",
     )
-    return agent_content
+    return agent_response
 
 
-def _format_agent_content(agent: Agent, agent_content: str) -> str:
+def _apply_agent_template(agent: Agent, agent_content: str) -> str:
     """
     Format agent content based on style configuration
 
@@ -241,6 +299,11 @@ def _format_agent_content(agent: Agent, agent_content: str) -> str:
     Returns:
         Formatted content string
     """
+    if not agent_content:
+        # Empty content (e.g. action-only agent): skip the template but keep
+        # the result so the marker is still written to prevent reprocessing
+        return agent_content
+
     template = agent.template
     html_content = to_html(agent_content)
 
