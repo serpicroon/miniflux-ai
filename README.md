@@ -38,7 +38,7 @@ Designed to handle thousands of unread entries efficiently.
 - **Pagination**: Fetches entries in batches to manage memory usage.
 - **Retry Logic**: Built-in handling for network jitters and API rate limits.
 
-### 5. ⚡ Agents That Act
+### 5. 🫳 Agents That Act
 Agents don't just write — they can **act** on the entry: mark it read, star it, or push it to your third-party services.
 - **Zero Extra Calls**: The framework reuses the agent's own LLM response, no extra round-trips.
 - **Prompt-Controlled**: You say *when* an action applies in the agent's prompt — it's your call.
