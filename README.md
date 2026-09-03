@@ -72,6 +72,28 @@ agents:
 
 *Configure as many agents as you want. They run in sequence and stack beautifully.*
 
+### ⚡ Agents Can Take Actions
+
+Beyond generating content, an agent can **act on the entry itself** — mark it read, star it, or push it to your third-party services — by declaring `allow_actions`. No extra LLM calls: the framework reuses the agent's own response.
+
+**Supported actions** (`ACTION` token the model may emit):
+- `read` — mark the entry as read
+- `star` — bookmark the entry (star / favorite)
+- `save` — send the entry to your configured third-party services
+
+**Example: The "Inbox Decider" Agent**
+*Want meeting invites marked as read automatically?*
+```yaml
+agents:
+  inbox:
+    prompt: "If this is a meeting invitation, mark it as read. Otherwise give a 1-line summary."
+    template: '<div class="inbox">📥 {content}</div>'
+    allow_actions:
+      - read
+```
+
+*No extra LLM call — the framework appends an action hint to the agent's prompt, the model emits a trailing `<action>read</action>` line, and only the first agent (in config order) that produced an action wins.*
+
 ---
 
 ## 🚀 Quick Start

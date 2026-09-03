@@ -102,7 +102,18 @@ agents:
       # - EntryTitle=(?i)\$\d{2,5}\s+(off|discount)  # Block "$50 off" patterns
       # - FeedSiteURL=https://spam\.com         # Block specific site
       # - FeedCategoryTitle=(?i)ads             # Block specific category
-    
+
+    # Actions the agent may apply to the entry (optional, empty disables actions)
+    # Supported actions:
+    #   - read: mark the entry as read
+    #   - star: bookmark the entry (star or favorite)
+    #   - save: send the entry to configured third-party services
+    # The agent decides based on its prompt, e.g.:
+    #   "Mark any invitations as read. Otherwise extract a core summary."
+    # When multiple agents apply actions, only the first one (in config order) wins.
+    # allow_actions:
+    #   - read
+
   translate:
     prompt: |-
       You are a highly skilled translation engine with expertise in the news media sector. 

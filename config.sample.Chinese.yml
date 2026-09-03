@@ -101,7 +101,18 @@ agents:
       # - EntryTitle=广告|推广                 # 排除包含"广告"或"推广"的标题
       # - FeedSiteURL=https://spam\.com       # 排除特定站点
       # - FeedCategoryTitle=(?i)spam          # 排除特定分类
-    
+
+    # 智能体可对条目执行的动作 (可选，留空则禁用动作)
+    # 支持的动作:
+    #   - read: 将条目标记为已读
+    #   - star: 收藏条目 (星标/收藏)
+    #   - save: 将条目发送到配置的第三方服务
+    # 智能体根据其 prompt 判断是否执行动作，例如:
+    #   "如果这是会议邀请，将其标记为已读。否则提炼核心摘要。"
+    # 多个智能体产生动作时，仅第一个 (按配置顺序) 生效。
+    # allow_actions:
+    #   - read
+
   translate:
     prompt: |-
       You are a highly skilled translation engine with expertise in the news media sector. 
