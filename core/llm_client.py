@@ -37,9 +37,6 @@ def chat_completion(
                 )
 
             content = completion.choices[0].message.content
-            # Empty content is a valid response (e.g. a pure-action agent that
-            # decides not to act). Callers treat it as an empty-content success:
-            # no exception, marker still written to prevent reprocessing.
             return (content or "").strip()
         except Exception:
             if attempt < retries:
