@@ -170,6 +170,42 @@ class TestProcessWithSingleAgent(unittest.TestCase):
 
     @patch("core.entry_processor.chat_completion")
     @patch("core.entry_processor.match_rules")
+    def test_action_agent_empty_response_is_not_error(self, mock_rules, mock_chat):
+        mock_rules.return_value = True
+        mock_chat.return_value = ""
+        agent = make_agent(allow_actions=["read"])
+
+        result = _process_with_single_agent("summary", agent, make_entry())
+
+        self.assertTrue(result.is_success)
+        self.assertIsNone(result.action)
+        self.assertEqual(result.content, "")
+
+    @patch("core.entry_processor.chat_completion")
+    @patch("core.entry_processor.match_rules")
+    def test_action_agent_passes_allow_empty(self, mock_rules, mock_chat):
+        mock_rules.return_value = True
+        mock_chat.return_value = "<action>read</action>"
+        make_agent(allow_actions=["read"])
+
+        _process_with_single_agent(
+            "summary", make_agent(allow_actions=["read"]), make_entry()
+        )
+        self.assertTrue(mock_chat.call_args.kwargs.get("allow_empty"))
+
+    @patch("core.entry_processor.chat_completion")
+    @patch("core.entry_processor.match_rules")
+    def test_plain_agent_does_not_pass_allow_empty(self, mock_rules, mock_chat):
+        mock_rules.return_value = True
+        mock_chat.return_value = "normal content"
+        make_agent()
+
+        _process_with_single_agent("summary", make_agent(), make_entry())
+        self.assertFalse(mock_chat.call_args.kwargs.get("allow_empty"))
+
+
+    @patch("core.entry_processor.chat_completion")
+    @patch("core.entry_processor.match_rules")
     def test_llm_error(self, mock_rules, mock_chat):
         mock_rules.return_value = True
         mock_chat.side_effect = LLMResponseError("boom")

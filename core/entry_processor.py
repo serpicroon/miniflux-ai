@@ -276,7 +276,7 @@ def _execute_agent(agent_name: str, agent: Agent, entry: dict[str, Any]) -> str:
         message=f"LLM request sent: prompts={prompts}",
     )
 
-    agent_response = chat_completion(prompts)
+    agent_response = chat_completion(prompts, allow_empty=bool(agent.allow_actions))
 
     logger.debug_entry(
         entry,

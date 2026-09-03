@@ -13,7 +13,10 @@ llm_client = OpenAI(base_url=config.llm_base_url, api_key=config.llm_api_key)
 @sleep_and_retry
 @limits(calls=config.llm_RPM, period=60)
 def chat_completion(
-    prompts: list[tuple[str, str]], temperature: float | None = None, retries: int = 0
+    prompts: list[tuple[str, str]],
+    temperature: float | None = None,
+    retries: int = 0,
+    allow_empty: bool = False,
 ) -> str:
     for attempt in range(retries + 1):
         try:
@@ -38,6 +41,8 @@ def chat_completion(
 
             content = completion.choices[0].message.content
             if not content:
+                if allow_empty:
+                    return ""
                 raise LLMResponseError(f"LLM returned empty content: {completion}")
 
             return content.strip()
