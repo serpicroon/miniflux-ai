@@ -262,7 +262,7 @@ def _execute_agent(agent_name: str, agent: Agent, entry: dict[str, Any]) -> str:
     content_markdown = to_markdown(entry["content"])
 
     prompts = [
-        ("user", ENTRY_PROMPT_SCHEMA.format_description),
+        ("user", ENTRY_PROMPT_SCHEMA.entry_description),
         ("user", ENTRY_PROMPT_SCHEMA.render(title=title, content=content_markdown)),
         ("user", agent.prompt),
     ]
