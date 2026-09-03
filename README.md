@@ -69,8 +69,6 @@ agents:
       - save            # send the entry to your third-party services
 ```
 
-*Agents decide based on their prompt — the framework applies the action at no extra API cost.*
-
 **Example: The "TL;DR" Agent**
 *Just want 3 bullet points for long-form content?*
 ```yaml
