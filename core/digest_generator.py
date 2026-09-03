@@ -56,7 +56,7 @@ def _generate_greeting() -> str:
     current_time = f"{now.isoformat(timespec='seconds')} ({now.strftime('%A')})"
     logger.debug(f"Generating greeting for time: {current_time}")
 
-    return chat_completion(
+    greeting = chat_completion(
         [
             ("user", config.digest_prompts["greeting"]),
             ("user", f"Current time: {current_time}"),
@@ -64,6 +64,14 @@ def _generate_greeting() -> str:
         temperature=0.8,
         retries=1,
     )
+
+    # Guard against an empty LLM greeting (now a valid, non-error response)
+    # so the digest is never saved as blank.
+    if not greeting:
+        logger.warning("LLM returned empty greeting, using timestamp fallback")
+        return f"🌐 {current_time}"
+
+    return greeting
 
 
 def _generate_summary(summaries: list[dict[str, Any]]) -> str:
