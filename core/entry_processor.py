@@ -213,10 +213,13 @@ def _process_with_single_agent(
         action, agent_content = extract_action(agent_response)
 
         if action and action not in agent.allow_actions:
-            message = f"Action: {action} (ignored), Content: {agent_content}"
+            message = f"Action: {action} (ignored)"
             action = None
         else:
-            message = f"Action: {action}, Content: {agent_content}"
+            message = f"Action: {action}"
+
+        if agent_content:
+            message = f"{message}, Content: {agent_content}"
 
         logger.info_entry(
             entry, agent_name=agent_name, message=message, include_title=True
