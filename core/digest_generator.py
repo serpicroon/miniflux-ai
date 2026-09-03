@@ -78,9 +78,7 @@ def _generate_summary(summaries: list[dict[str, Any]]) -> str:
         or empty string if no summary prompt is configured
     """
     logger.debug("Generating digest content from summaries")
-    contents = DIGEST_PROMPT_SCHEMA.render(
-        [(s["id"], s["content"]) for s in summaries]
-    )
+    contents = DIGEST_PROMPT_SCHEMA.render([(s["id"], s["content"]) for s in summaries])
 
     summary_prompt = (config.digest_prompts or {}).get("summary", "")
     if not summary_prompt:

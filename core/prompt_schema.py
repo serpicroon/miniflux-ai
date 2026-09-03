@@ -55,11 +55,7 @@ class DigestPromptSchema:
     )
     entry_template: str = "| $id | $content |"
     entries_template: str = (
-        "<entries>\n"
-        "| Entry ID | Summary |\n"
-        "| --- | --- |\n"
-        "$entries\n"
-        "</entries>"
+        "<entries>\n| Entry ID | Summary |\n| --- | --- |\n$entries\n</entries>"
     )
     citation_format: str = (
         "<citation_format>\n"
@@ -84,6 +80,7 @@ class DigestPromptSchema:
             for i, c in entries
         )
         return Template(self.entries_template).substitute(entries=rendered)
+
 
 DIGEST_PROMPT_SCHEMA = DigestPromptSchema()
 
