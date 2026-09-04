@@ -31,18 +31,20 @@ def generate_digest_content() -> str | None:
         greeting = _generate_greeting()
         summary_digest = _generate_summary(summaries)
 
-        # Combine all parts into final digest content
-        if summary_digest:
-            response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
-        else:
-            logger.warning("Summary generation skipped, digest contains greeting only")
-            response_content = greeting
-        _save_digest_content(response_content)
-        return response_content
+        digest_content = _build_digest(greeting, summary_digest)
+
+        _save_digest_content(digest_content)
+        return digest_content
 
     except Exception as e:
         logger.error(f"Failed to generate digest content: {e}")
         raise
+
+
+def _build_digest(greeting: str, summary_digest: str) -> str:
+    """Join the non-empty greeting and summary parts with a blank line."""
+    section = f"### 🌐Digest\n\n{summary_digest}" if summary_digest else ""
+    return "\n\n".join(part for part in (greeting, section) if part)
 
 
 def _generate_greeting() -> str:
