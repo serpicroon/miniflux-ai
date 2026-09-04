@@ -56,9 +56,14 @@ def _generate_greeting() -> str:
     current_time = f"{now.isoformat(timespec='seconds')} ({now.strftime('%A')})"
     logger.debug(f"Generating greeting for time: {current_time}")
 
+    greeting_prompt = (config.digest_prompts or {}).get("greeting", "")
+    if not greeting_prompt:
+        logger.warning("No greeting prompt configured, using timestamp fallback")
+        return f"🌐 {current_time}"
+
     greeting = chat_completion(
         [
-            ("user", config.digest_prompts["greeting"]),
+            ("user", greeting_prompt),
             ("user", f"Current time: {current_time}"),
         ],
         temperature=0.8,
