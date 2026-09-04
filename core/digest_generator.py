@@ -57,10 +57,6 @@ def _generate_greeting() -> str:
     logger.debug(f"Generating greeting for time: {current_time}")
 
     greeting_prompt = (config.digest_prompts or {}).get("greeting", "")
-    if not greeting_prompt:
-        logger.warning("No greeting prompt configured, using timestamp fallback")
-        return f"🌐 {current_time}"
-
     greeting = chat_completion(
         [
             ("user", greeting_prompt),
@@ -69,12 +65,6 @@ def _generate_greeting() -> str:
         temperature=0.8,
         retries=1,
     )
-
-    # Guard against an empty LLM greeting (now a valid, non-error response)
-    # so the digest is never saved as blank.
-    if not greeting:
-        logger.warning("LLM returned empty greeting, using timestamp fallback")
-        return f"🌐 {current_time}"
 
     return greeting
 
