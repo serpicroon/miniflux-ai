@@ -38,6 +38,12 @@ Designed to handle thousands of unread entries efficiently.
 - **Pagination**: Fetches entries in batches to manage memory usage.
 - **Retry Logic**: Built-in handling for network jitters and API rate limits.
 
+### 5. 🫳 Agents That Act
+Agents don't just write — they can **act** on the entry: mark it read, star it, or push it to your third-party services.
+- **Zero Extra Calls**: The framework reuses the agent's own LLM response, no extra round-trips.
+- **Prompt-Controlled**: You say *when* an action applies in the agent's prompt — it's your call.
+- **Deterministic**: Only actions listed in `allow_actions` fire, and only the first agent (in config order) wins.
+
 ---
 
 ## ✨ Endless Possibilities with Agents
@@ -45,11 +51,11 @@ Designed to handle thousands of unread entries efficiently.
 You are not limited to "Summary" and "Translation". Define **custom agents** in your config to extract exactly what you need.
 
 **Example: The "Market Analyst" Agent**
-*Want to find trading signals in tech news?*
+*Want to spot trading signals — and bookmark the interesting ones?*
 ```yaml
 agents:
   analyst:
-    prompt: "Analyze this article for potential stock market impacts. Bullish or Bearish?"
+    prompt: "Analyze this article for potential stock market impacts. Bullish or Bearish? If it's a strong signal, star it."
     template: '<div class="insight-box">📈 <strong>Market Impact:</strong> {content}</div>'
     deny_rules:
       - EntryTitle=(?i)(advertisement|sponsored)  # Block ads
@@ -57,6 +63,10 @@ agents:
     allow_rules:
       - FeedSiteURL=.*bloomberg\.com.*
       - FeedSiteURL=.*techcrunch\.com.*
+    allow_actions:      # Agent can take an action (optional, empty disables)
+      - read            # mark the entry as read
+      - star            # bookmark the entry (star / favorite)
+      - save            # send the entry to your third-party services
 ```
 
 **Example: The "TL;DR" Agent**

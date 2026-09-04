@@ -37,10 +37,7 @@ def chat_completion(
                 )
 
             content = completion.choices[0].message.content
-            if not content:
-                raise LLMResponseError(f"LLM returned empty content: {completion}")
-
-            return content.strip()
+            return (content or "").strip()
         except Exception:
             if attempt < retries:
                 logger.warning(

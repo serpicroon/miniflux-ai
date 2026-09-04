@@ -31,18 +31,20 @@ def generate_digest_content() -> str | None:
         greeting = _generate_greeting()
         summary_digest = _generate_summary(summaries)
 
-        # Combine all parts into final digest content
-        if summary_digest:
-            response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
-        else:
-            logger.warning("Summary generation skipped, digest contains greeting only")
-            response_content = greeting
-        _save_digest_content(response_content)
-        return response_content
+        digest_content = _build_digest(greeting, summary_digest)
+
+        _save_digest_content(digest_content)
+        return digest_content
 
     except Exception as e:
         logger.error(f"Failed to generate digest content: {e}")
         raise
+
+
+def _build_digest(greeting: str, summary_digest: str) -> str:
+    """Join the non-empty greeting and summary parts with a blank line."""
+    section = f"### 🌐Digest\n\n{summary_digest}" if summary_digest else ""
+    return "\n\n".join(part for part in (greeting, section) if part)
 
 
 def _generate_greeting() -> str:
@@ -56,14 +58,21 @@ def _generate_greeting() -> str:
     current_time = f"{now.isoformat(timespec='seconds')} ({now.strftime('%A')})"
     logger.debug(f"Generating greeting for time: {current_time}")
 
-    return chat_completion(
+    greeting_prompt = (config.digest_prompts or {}).get("greeting", "")
+    if not greeting_prompt:
+        logger.warning("No greeting prompt configured, skipping greeting generation")
+        return ""
+
+    greeting = chat_completion(
         [
-            ("user", config.digest_prompts["greeting"]),
+            ("user", greeting_prompt),
             ("user", f"Current time: {current_time}"),
         ],
         temperature=0.8,
         retries=1,
     )
+
+    return greeting
 
 
 def _generate_summary(summaries: list[dict[str, Any]]) -> str:
@@ -78,13 +87,13 @@ def _generate_summary(summaries: list[dict[str, Any]]) -> str:
         or empty string if no summary prompt is configured
     """
     logger.debug("Generating digest content from summaries")
-    contents = DIGEST_PROMPT_SCHEMA.render([(s["id"], s["content"]) for s in summaries])
 
     summary_prompt = (config.digest_prompts or {}).get("summary", "")
     if not summary_prompt:
         logger.warning("No summary prompt configured, skipping summary generation")
         return ""
 
+    contents = DIGEST_PROMPT_SCHEMA.render([(s["id"], s["content"]) for s in summaries])
     prompts = [
         ("user", DIGEST_PROMPT_SCHEMA.intro),
         ("user", contents),
