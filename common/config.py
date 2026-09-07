@@ -2,7 +2,11 @@ import sys
 
 from yaml import safe_load
 
-from common.models import Agent
+from common.models import Agent, Duration
+
+# Units permitted for each scheduler duration field.
+SCHEDULER_INTERVAL_UNITS = ("m", "h")
+SCHEDULER_WINDOW_UNITS = ("d", "w")
 
 
 class Config:
@@ -11,7 +15,6 @@ class Config:
             self.c = safe_load(f)
 
         self.log_level = self.c.get("log_level", "INFO")
-        self.entry_since = self.c.get("entry_since", 0)
 
         self.miniflux_base_url = self._get_config_value("miniflux", "base_url", None)
         self.miniflux_api_key = self._get_config_value("miniflux", "api_key", None)
@@ -28,6 +31,24 @@ class Config:
         self.llm_prompt_processing = self._get_config_value(
             "llm", "prompt_processing", "strict"
         )
+
+        scheduler = self.c.get("scheduler", {}) or {}
+        self.scheduler_interval = Duration.parse(
+            scheduler.get("interval"), SCHEDULER_INTERVAL_UNITS
+        )
+        self.scheduler_entry_window = Duration.parse(
+            scheduler.get("entry_window"), SCHEDULER_WINDOW_UNITS
+        )
+        self.scheduler_entry_limit = scheduler.get("entry_limit", 0)
+        if (
+            not isinstance(self.scheduler_entry_limit, int)
+            or isinstance(self.scheduler_entry_limit, bool)
+            or self.scheduler_entry_limit < 0
+        ):
+            raise ValueError(
+                "scheduler.entry_limit must be a non-negative integer, "
+                f"got {self.scheduler_entry_limit!r}"
+            )
 
         self.digest_name = self._get_config_value(
             "digest", "name", "֎Minifluxᴬᴵ Digest for you"
