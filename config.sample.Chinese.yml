@@ -1,9 +1,6 @@
 # INFO、DEBUG、WARN、ERROR
 log_level: "INFO"
 
-# 跳过此Unix时间戳之前的条目，避免版本迁移时重复处理 (可选)
-# entry_since: 1704067200  # Unix时间戳，2024-01-01 00:00:00 UTC，获取当前时间戳: date +%s
-
 miniflux:
   base_url: https://your.server.com
   api_key: Miniflux_API_key_here
@@ -20,6 +17,16 @@ llm:
   #   none:   原样透传多条消息，适用于 OpenAI 等多 system 消息的模型
   #   strict: 合并同角色消息，非首条 system 降级为 <instruction>，适用于 DeepSeek 等
   #   single: 全部合并为单条 user 消息，适用于不支持 system 角色的模型
+
+# 条目处理调度器 (可选)
+# scheduler:
+#   # 每隔多久轮询并处理一次未读条目。单位: m(分钟)、h(小时)
+#   interval: 5m
+#   # 仅处理不早于该时间窗口的条目。单位: d(天)、w(周)
+#   entry_window: 3w
+#   # 单次运行最多处理的条目数 (0 = 不限制)。优先处理最新的条目，
+#   # 超出限制的较旧未读条目每次运行都会被跳过。
+#   entry_limit: 50
 
 digest:
   # RSS 订阅源生成的服务地址 (Docker Compose 环境使用容器名)

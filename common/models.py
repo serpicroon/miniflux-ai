@@ -2,8 +2,93 @@
 Data models
 """
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
+
+
+@dataclass(frozen=True)
+class Duration:
+    """
+    A positive duration as an amount plus a fixed time unit.
+
+    Parses human-friendly strings like "5m" or "3w" and exposes the length in
+    seconds. Per-field unit constraints (e.g. a scheduler interval may only use
+    minutes/hours while an entry window may only use days/weeks) are enforced
+    at parse time via `allowed_units`.
+
+    Attributes:
+        amount: Positive integer magnitude.
+        unit:   Canonical time unit, one of Unit.
+    """
+
+    # Supported units and their length in seconds.
+    Unit = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+
+    amount: int
+    unit: str
+
+    def __post_init__(self) -> None:
+        if self.unit not in self.Unit:
+            raise ValueError(f"Unsupported duration unit '{self.unit}'")
+        if self.amount <= 0:
+            raise ValueError(f"Duration amount must be positive, got {self.amount}")
+
+    @classmethod
+    def parse(
+        cls,
+        value: str | None,
+        allowed_units: tuple[str, ...] | None = None,
+    ) -> "Duration | None":
+        """
+        Parse a duration string such as "5m" or "3w" into a Duration.
+
+        Args:
+            value: Raw string; empty or None yields None (no constraint).
+            allowed_units: Optional whitelist of units permitted for this field.
+                Using any other unit raises ValueError, e.g. to forbid 'm'
+                (minutes vs months) where it would be ambiguous.
+
+        Returns:
+            A Duration, or None when value was empty/None.
+
+        Raises:
+            ValueError: If the value is not a string, is malformed, uses a
+                forbidden unit, or has a non-positive amount.
+        """
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ValueError(f"Invalid duration {value!r}, expected e.g. '5m' or '3w'")
+        value = value.strip()
+        if not value:
+            return None
+        match = re.fullmatch(r"(\d+)([a-zA-Z]+)", value)
+        if not match:
+            raise ValueError(f"Invalid duration '{value}', expected e.g. '5m' or '3w'")
+        amount, unit = int(match.group(1)), match.group(2)
+        if unit not in cls.Unit:
+            raise ValueError(
+                f"Unsupported duration unit '{unit}' in '{value}', "
+                f"supported: {', '.join(cls.Unit)}"
+            )
+        if allowed_units and unit not in allowed_units:
+            raise ValueError(
+                f"Unit '{unit}' in '{value}' is not allowed here, "
+                f"use: {', '.join(allowed_units)}"
+            )
+        if amount <= 0:
+            raise ValueError(f"Duration amount must be positive, got '{value}'")
+        return cls(amount=amount, unit=unit)
+
+    @property
+    def seconds(self) -> int:
+        """The duration expressed in whole seconds."""
+        return self.amount * self.Unit[self.unit]
+
+    def __str__(self) -> str:
+        """Compact representation, e.g. '5m' or '3w'."""
+        return f"{self.amount}{self.unit}"
 
 
 @dataclass
