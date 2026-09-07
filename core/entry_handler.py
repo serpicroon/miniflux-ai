@@ -44,26 +44,37 @@ def shutdown_executor() -> None:
         _executor = None
 
 
+PAGE_SIZE = 100
+
+
 def handle_unread_entries() -> None:
     """
     Fetch and process unread entries from Miniflux using pagination
     """
     try:
         offset = 0
-        limit = 100
+        processed = 0
 
+        entry_limit = config.scheduler_entry_limit
         while True:
             if shutdown_event.is_set():
                 break
 
+            limit = PAGE_SIZE
+            if entry_limit:
+                limit = min(PAGE_SIZE, entry_limit - processed)
+                if limit <= 0:
+                    break
+
             total, entries = _fetch_entries_page(offset, limit)
-            if total == 0 or not entries:
+            if not entries:
                 logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
                 break
 
             process_entries_concurrently(entries)
+            processed += len(entries)
 
-            offset += limit
+            offset += len(entries)
             if offset >= total:
                 logger.debug(f"Stopping pagination, offset: {offset}, total: {total}")
                 break
@@ -82,7 +93,7 @@ def _fetch_entries_page(offset: int, limit: int) -> tuple[int, list[dict[str, An
         limit: Maximum number of entries to fetch
 
     Returns:
-        List of entries for current page, or None if no entries found
+        Tuple of total unread count and entries for the current page
     """
     try:
         kwargs = {
@@ -92,8 +103,8 @@ def _fetch_entries_page(offset: int, limit: int) -> tuple[int, list[dict[str, An
             "offset": offset,
             "limit": limit,
         }
-        if config.entry_since > 0:
-            kwargs["after"] = config.entry_since
+        if config.scheduler_entry_window is not None:
+            kwargs["after"] = int(time.time()) - config.scheduler_entry_window.seconds
 
         logger.debug(f"Fetching unread entries page with kwargs: {kwargs}")
 
