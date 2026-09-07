@@ -169,3 +169,7 @@ data/
 
 # Design/research docs are not committed
 docs/
+
+# Local tooling
+.claude/
+.codegraph/
