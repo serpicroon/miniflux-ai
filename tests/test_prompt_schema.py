@@ -55,9 +55,7 @@ class TestActionPromptSchema(unittest.TestCase):
         """Test that the block tells the model to omit the tag when no action applies"""
         rendered = ACTION_PROMPT_SCHEMA.render(["read"])
 
-        self.assertIn(
-            "If you do not take an action, do not append any action tag.", rendered
-        )
+        self.assertIn("otherwise → output no action tag", rendered)
 
 
 if __name__ == "__main__":

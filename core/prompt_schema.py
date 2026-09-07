@@ -53,17 +53,14 @@ class ActionPromptSchema:
 
     template: str = (
         "<action_instructions>\n"
-        "You may optionally take an action on this entry. Decide whether to act based "
-        "on the user's instructions.\n"
-        "Do not explain, justify, or otherwise comment on your action decision.\n"
+        "You may take an action per the user's instructions above:\n"
+        "- take action → append exactly one line at the very end: <action>ACTION</action>\n"
+        "- otherwise → output no action tag\n"
         "\n"
-        "If you take an action, append exactly one line at the very end of your response:\n"
-        "<action>ACTION</action>\n"
-        "\n"
-        "ACTION must be one of the following:\n"
+        "ACTION must be one of:\n"
         "$actions\n"
         "\n"
-        "If you do not take an action, do not append any action tag.\n"
+        "Never explain or justify your action decision.\n"
         "</action_instructions>"
     )
 
