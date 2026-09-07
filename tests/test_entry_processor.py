@@ -84,7 +84,9 @@ class TestExecuteAgent(unittest.TestCase):
 
         self.assertEqual(len(prompts), 4)
         self.assertIn("<action_instructions>", prompts[3][1])
-        self.assertIn("- read: mark the entry as read", prompts[3][1])
+        self.assertIn(
+            "- read: mark the entry as read and stop further processing", prompts[3][1]
+        )
 
     @patch("core.entry_processor.chat_completion")
     def test_no_action_block_without_allow_actions(self, mock_chat):
@@ -331,6 +333,31 @@ class TestProcessEntry(unittest.TestCase):
         self.assertIn("Summary text", args.kwargs["content"])
         # Action applied after content update
         mock_client.update_entries.assert_called_once_with([12345], "read")
+
+    @patch("core.entry_processor.get_miniflux_client")
+    @patch("core.entry_processor.chat_completion")
+    @patch("core.entry_processor.match_rules")
+    @patch("core.entry_processor.config")
+    def test_read_action_stops_downstream_agents(
+        self, mock_config, mock_rules, mock_chat, mock_client_factory
+    ):
+        mock_config.agents = {
+            "triage": make_agent(allow_actions=["read"]),
+            "summary": make_agent(),
+        }
+        mock_config.digest_schedule = None
+        mock_rules.return_value = True
+        mock_chat.return_value = "<action>read</action>"
+        mock_client = Mock()
+        mock_client_factory.return_value = mock_client
+
+        results = process_entry(make_entry())
+
+        # read action applied
+        self.assertEqual(results["triage"].action, "read")
+        mock_client.update_entries.assert_called_once_with([12345], "read")
+        # subsequent agents blocked: only one LLM call happened
+        mock_chat.assert_called_once()
 
     @patch("core.entry_processor.get_miniflux_client")
     @patch("core.entry_processor.chat_completion")
