@@ -128,10 +128,6 @@ def _apply_entry_action(
                 client.toggle_bookmark(entry_id)
             elif action == "save":
                 client.save_entry(entry_id)
-
-            logger.info_entry(
-                entry, agent_name=agent_name, message=f"Action applied: {action}"
-            )
         except Exception as e:
             logger.warning_entry(
                 entry, agent_name=agent_name, message=f"Action '{action}' failed: {e}"
