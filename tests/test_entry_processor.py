@@ -84,9 +84,7 @@ class TestExecuteAgent(unittest.TestCase):
 
         self.assertEqual(len(prompts), 4)
         self.assertIn("<action_instructions>", prompts[3][1])
-        self.assertIn(
-            "- read: mark the entry as read and stop further processing", prompts[3][1]
-        )
+        self.assertIn("- read: mark the entry as read", prompts[3][1])
 
     @patch("core.entry_processor.chat_completion")
     def test_no_action_block_without_allow_actions(self, mock_chat):

@@ -42,7 +42,7 @@ Designed to handle thousands of unread entries efficiently.
 Agents don't just write — they can **act** on the entry: mark it read, star it, or push it to your third-party services.
 - **Zero Extra Calls**: The framework reuses the agent's own LLM response, no extra round-trips.
 - **Prompt-Controlled**: You say *when* an action applies in the agent's prompt — it's your call.
-- **Deterministic**: Only actions listed in `allow_actions` fire, and only the first agent (in config order) wins.
+- **Deterministic**: Only actions listed in `allow_actions` fire, and only the first agent (in config order) wins. Marking an entry as read skips the remaining agents for that entry.
 
 ---
 
@@ -64,7 +64,7 @@ agents:
       - FeedSiteURL=.*bloomberg\.com.*
       - FeedSiteURL=.*techcrunch\.com.*
     allow_actions:      # Agent can take an action (optional, empty disables)
-      - read            # mark the entry as read
+      - read            # mark the entry as read and stop further processing
       - star            # bookmark the entry (star / favorite)
       - save            # send the entry to your third-party services
 ```

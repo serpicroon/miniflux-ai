@@ -112,7 +112,7 @@ agents:
 
     # Actions the agent may apply to the entry (optional, empty disables actions)
     # Supported actions:
-    #   - read: mark the entry as read
+    #   - read: mark the entry as read and stop further processing
     #   - star: bookmark the entry (star or favorite)
     #   - save: send the entry to configured third-party services
     # The agent decides based on its prompt, e.g.:

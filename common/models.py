@@ -10,7 +10,7 @@ from enum import Enum
 # The explanation bridges the user's natural language prompt (e.g. "mark as read")
 # to the action token the framework extracts and applies.
 ACTION_DEFINITIONS = {
-    "read": "mark the entry as read and stop further processing",
+    "read": "mark the entry as read",
     "star": "bookmark the entry (star or favorite)",
     "save": "send the entry to configured third-party services",
 }
