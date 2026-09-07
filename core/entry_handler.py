@@ -49,16 +49,7 @@ PAGE_SIZE = 100
 
 def handle_unread_entries() -> None:
     """
-    Fetch and process unread entries from Miniflux using pagination.
-
-    Processes at most `scheduler_entry_limit` entries per run (0 = unlimited),
-    newest first (order=id desc). With a limit, only the newest entries are
-    handled on every run; older unread entries beyond the limit are skipped
-    again on the next run (they are never marked read here), so use a limit
-    only to cap per-run work, not to eventually drain a backlog.
-
-    The remaining per-run budget is folded into each page's size, so the API
-    only returns as many entries as this run can still handle.
+    Fetch and process unread entries from Miniflux using pagination
     """
     try:
         offset = 0
@@ -102,8 +93,7 @@ def _fetch_entries_page(offset: int, limit: int) -> tuple[int, list[dict[str, An
         limit: Maximum number of entries to fetch
 
     Returns:
-        Tuple of (total unread count, entries for the current page);
-        entries is empty when there is nothing left to fetch
+        Tuple of total unread count and entries for the current page
     """
     try:
         kwargs = {
