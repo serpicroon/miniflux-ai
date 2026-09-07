@@ -184,11 +184,6 @@ def _process_entry_with_agents(
         agent_results[agent_name] = result
 
         if result.action == "read":
-            logger.info_entry(
-                entry,
-                agent_name=agent_name,
-                message="Marked as read, skipping remaining agents",
-            )
             break
 
     return agent_results
