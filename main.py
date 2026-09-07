@@ -52,7 +52,11 @@ def run_scheduler() -> None:
                 schedule.every().day.at(digest_time).do(generate_daily_digest)
                 logger.info(f"Scheduled daily digest at {digest_time}")
 
-        interval = 15 if config.miniflux_webhook_secret else 1
+        interval_cfg = config.scheduler_interval
+        if interval_cfg is None:
+            interval = 15 if config.miniflux_webhook_secret else 1
+        else:
+            interval = max(1, interval_cfg.seconds // 60)
         unread_entries_job = schedule.every(interval).minutes.do(handle_unread_entries)
         logger.info(f"Scheduled entry processing every {interval} minute(s)")
         unread_entries_job.next_run = datetime.datetime.now()

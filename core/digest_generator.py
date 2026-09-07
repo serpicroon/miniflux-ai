@@ -1,7 +1,7 @@
 import json
 import re
-import time
 import traceback
+from datetime import datetime
 from typing import Any
 
 from common import DIGEST_FILE, SUMMARY_FILE, SUMMARY_FILE_LOCK, config
@@ -32,7 +32,11 @@ def generate_digest_content() -> str | None:
         summary_digest = _generate_summary(summaries)
 
         # Combine all parts into final digest content
-        response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
+        if summary_digest:
+            response_content = f"{greeting}\n\n### 🌐Digest\n{summary_digest}"
+        else:
+            logger.warning("Summary generation skipped, digest contains greeting only")
+            response_content = greeting
         _save_digest_content(response_content)
         return response_content
 
@@ -48,12 +52,13 @@ def _generate_greeting() -> str:
     Returns:
         Generated greeting string
     """
-    current_time = time.strftime("%B %d, %Y at %I:%M %p")
+    now = datetime.now().astimezone()
+    current_time = f"{now.isoformat(timespec='seconds')} ({now.strftime('%A')})"
     logger.debug(f"Generating greeting for time: {current_time}")
 
     return chat_completion(
         [
-            ("system", config.digest_prompts["greeting"]),
+            ("user", config.digest_prompts["greeting"]),
             ("user", f"Current time: {current_time}"),
         ],
         temperature=0.8,
@@ -69,44 +74,56 @@ def _generate_summary(summaries: list[dict[str, Any]]) -> str:
         summaries: List of summary dictionaries
 
     Returns:
-        Generated summary content string with entry links
+        Generated summary content string with entry links,
+        or empty string if no summary prompt is configured
     """
     logger.debug("Generating digest content from summaries")
-    contents = "\n\n".join(f"[^{s['id']}] {s['content']}" for s in summaries)
+    contents = DIGEST_PROMPT_SCHEMA.render([(s["id"], s["content"]) for s in summaries])
+
+    summary_prompt = (config.digest_prompts or {}).get("summary", "")
+    if not summary_prompt:
+        logger.warning("No summary prompt configured, skipping summary generation")
+        return ""
 
     prompts = [
-        ("system", DIGEST_PROMPT_SCHEMA.input_format),
-        ("system", DIGEST_PROMPT_SCHEMA.citation_format),
-        ("system", DIGEST_PROMPT_SCHEMA.citation_verification),
+        ("user", DIGEST_PROMPT_SCHEMA.intro),
+        ("user", contents),
+        ("user", summary_prompt),
+        ("user", DIGEST_PROMPT_SCHEMA.citation_format),
+        ("user", DIGEST_PROMPT_SCHEMA.citation_verification),
     ]
-
-    config_prompt = (config.digest_prompts or {}).get("summary", "")
-    if config_prompt:
-        prompts.append(("system", config_prompt))
-    prompts.append(("user", contents))
 
     summary = chat_completion(prompts, retries=1)
 
     if config.digest_entry_url:
-        summary = _apply_entry_links(summary, config.digest_entry_url)
+        entry_ids = {str(s["id"]) for s in summaries}
+        summary = _apply_entry_links(summary, config.digest_entry_url, entry_ids)
     return summary
 
 
-def _apply_entry_links(content: str, entry_url: str) -> str:
+def _apply_entry_links(content: str, entry_url: str, entry_ids: set[str]) -> str:
     """
     Transform [^ID] footnote references into superscript markdown links
+
+    Only [^ID] references whose ID exists in entry_ids are converted; unknown
+    (hallucinated) IDs are dropped entirely.
 
     Args:
         content: Content string with [^ID] footnote references
         entry_url: URL template with {id} placeholder
+        entry_ids: Set of entry IDs that may be referenced
 
     Returns:
-        Content string with [^ID] footnote references replaced by entry links
+        Content string with known [^ID] references replaced by entry links
     """
 
     def to_links(match: re.Match) -> str:
         ids = re.findall(r"\[\^(\d+)\]", match.group(0))
-        links = " ".join(f"[{id}]({entry_url.format(id=id)})" for id in ids)
+        links = " ".join(
+            f"[{id}]({entry_url.format(id=id)})" for id in ids if id in entry_ids
+        )
+        if not links:
+            return ""
         return f"<sup>{links}</sup>"
 
     return re.sub(r"(?:\[\^\d+\])+", to_links, content)

@@ -1,9 +1,6 @@
 # Log level: INFO, DEBUG, WARN, ERROR
 log_level: "INFO"
 
-# Skip entries before this unix timestamp to avoid reprocessing during migration (optional)
-# entry_since: 1704067200  # Unix timestamp for 2024-01-01 00:00:00 UTC
-
 miniflux:
   base_url: https://your.server.com
   api_key: Miniflux_API_key_here
@@ -20,6 +17,16 @@ llm:
   #   none:   Pass-through multiple messages as-is, for OpenAI and models supporting multiple system messages
   #   strict: Merge same-role messages, demote non-first system to <instruction>, for DeepSeek etc.
   #   single: Collapse all into a single user message, for models without system role support
+
+# Entry processing scheduler (optional)
+# scheduler:
+#   # How often to poll for and process unread entries. Units: m (minutes), h (hours)
+#   interval: 5m
+#   # Only process entries newer than this window. Units: d (days), w (weeks)
+#   entry_window: 3w
+#   # Max entries processed per run (0 = unlimited). Newest entries first;
+#   # older unread beyond the limit are skipped on every run.
+#   entry_limit: 50
 
 digest:
   # Service URL for RSS feed generation (use container name for Docker Compose)

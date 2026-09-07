@@ -211,9 +211,9 @@ def _get_agent_content(agent_name: str, agent: Agent, entry: dict[str, Any]) -> 
 
     user_prompt = ENTRY_PROMPT_SCHEMA.render(title=title, content=content_markdown)
     prompts = [
-        ("system", ENTRY_PROMPT_SCHEMA.format_description),
-        ("system", agent.prompt),
+        ("user", ENTRY_PROMPT_SCHEMA.entry_description),
         ("user", user_prompt),
+        ("user", agent.prompt),
     ]
 
     logger.debug_entry(
