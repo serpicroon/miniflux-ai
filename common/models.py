@@ -6,6 +6,15 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 
+# Action vocabulary: internal token -> semantic explanation for the LLM.
+# The explanation bridges the user's natural language prompt (e.g. "mark as read")
+# to the action token the framework extracts and applies.
+ACTION_DEFINITIONS = {
+    "read": "mark the entry as read",
+    "star": "bookmark the entry (star or favorite)",
+    "save": "send the entry to configured third-party services",
+}
+
 
 @dataclass(frozen=True)
 class Duration:
@@ -101,12 +110,14 @@ class Agent:
         template: The output template for formatting agent results
         allow_rules: List of rules in format "FieldName=RegEx". Entry must match at least one rule.
         deny_rules: List of rules in format "FieldName=RegEx". Entry must NOT match any rule.
+        allow_actions: List of action names the agent may apply to the entry. Empty disables actions.
     """
 
     prompt: str
     template: str
     allow_rules: list[str] = field(default_factory=list)
     deny_rules: list[str] = field(default_factory=list)
+    allow_actions: list[str] = field(default_factory=list)
 
 
 class AgentResultStatus(Enum):
@@ -127,21 +138,23 @@ class AgentResult:
 
     status: AgentResultStatus
     content: str | None = None
+    action: str | None = None
     error: Exception | None = None
     error_message: str | None = None
 
     @classmethod
-    def success(cls, content: str) -> "AgentResult":
+    def success(cls, content: str, action: str | None = None) -> "AgentResult":
         """
         Create a successful agent result
 
         Args:
             content: The processed content
+            action: Optional action applied to the entry
 
         Returns:
             AgentResult with SUCCESS status
         """
-        return cls(status=AgentResultStatus.SUCCESS, content=content)
+        return cls(status=AgentResultStatus.SUCCESS, content=content, action=action)
 
     @classmethod
     def filtered(cls) -> "AgentResult":

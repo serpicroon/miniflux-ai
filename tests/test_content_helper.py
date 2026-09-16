@@ -8,6 +8,7 @@ from unittest.mock import patch
 from core.content_helper import (
     MARKER,
     build_ordered_content,
+    extract_action,
     get_content_length,
     parse_entry_content,
     to_html,
@@ -267,6 +268,65 @@ class TestToHtml(unittest.TestCase):
         self.assertIn("中文", html)
 
 
+class TestExtractAction(unittest.TestCase):
+    """Tests for extract_action function"""
+
+    def test_no_action_tag(self):
+        """Test response without action tag is unchanged"""
+        response = "<p>Summary content</p>"
+        action, stripped = extract_action(response)
+
+        self.assertIsNone(action)
+        self.assertEqual(stripped, response)
+
+    def test_action_at_end(self):
+        """Test extracting action tag at the end of a response"""
+        response = "<p>Summary content</p>\n<action>read</action>"
+        action, stripped = extract_action(response)
+
+        self.assertEqual(action, "read")
+        self.assertEqual(stripped, "<p>Summary content</p>")
+
+    def test_action_with_surrounding_whitespace(self):
+        """Test that action value whitespace is stripped"""
+        action, _ = extract_action("<action>  star  </action>")
+
+        self.assertEqual(action, "star")
+
+    def test_action_only_response(self):
+        """Test response containing only the action tag"""
+        action, stripped = extract_action("<action>save</action>")
+
+        self.assertEqual(action, "save")
+        self.assertEqual(stripped, "")
+
+    def test_invalid_action_still_extracted_and_stripped(self):
+        """Test that invalid actions are still extracted and stripped (framework validates)"""
+        response = "<p>Content</p>\n<action>archive</action>"
+        action, stripped = extract_action(response)
+
+        self.assertEqual(action, "archive")
+        self.assertNotIn("<action>", stripped)
+        self.assertIn("<p>Content</p>", stripped)
+
+    def test_multiple_tags_first_wins(self):
+        """Test that only the first action tag is returned but all are stripped"""
+        response = "<action>read</action>\n<p>Content</p>\n<action>star</action>"
+        action, stripped = extract_action(response)
+
+        self.assertEqual(action, "read")
+        self.assertNotIn("<action>", stripped)
+        self.assertIn("<p>Content</p>", stripped)
+
+    def test_multiline_tag_content(self):
+        """Test that tag content spanning whitespace/newlines is matched"""
+        response = "<p>Content</p>\n<action>\nread\n</action>"
+        action, stripped = extract_action(response)
+
+        self.assertEqual(action, "read")
+        self.assertEqual(stripped, "<p>Content</p>")
+
+
 class TestParseEntryContent(unittest.TestCase):
     """Tests for parse_entry_content function"""
 
@@ -312,14 +372,27 @@ class TestParseEntryContent(unittest.TestCase):
         self.assertEqual(agents["translate"], translate_content)
 
     def test_empty_agent_content(self):
-        """Test parsing when agent content is empty"""
+        """Test parsing when agent content is empty (marker counts as processed)"""
         marker = MARKER.format("summary")
         original = "<p>Original</p>"
         content = marker + original
 
         parsed_original, agents = parse_entry_content(content)
         self.assertEqual(parsed_original, original)
-        self.assertEqual(agents, {})
+        self.assertEqual(agents, {"summary": ""})
+
+    def test_empty_agent_content_between_markers(self):
+        """Test parsing empty agent content between other agents"""
+        summary_content = "<p>Summary</p>"
+        summary_marker = MARKER.format("summary")
+        translate_marker = MARKER.format("translate")
+        original = "<p>Original</p>"
+
+        content = summary_content + summary_marker + translate_marker + original
+
+        parsed_original, agents = parse_entry_content(content)
+        self.assertEqual(parsed_original, original)
+        self.assertEqual(agents, {"summary": summary_content, "translate": ""})
 
     def test_whitespace_handling(self):
         """Test that whitespace is properly stripped"""

@@ -10,6 +10,7 @@ from markdownify import markdownify as md
 MARKER = '<a href="#mfai-{0}" id="mfai-{0}"></a>'
 MARKER_PATTERN = r'<a\s+href="#mfai-([^"]+)"\s+id="mfai-[^"]+"[^>]*></a>'
 _LEGACY_MARKER_PATTERN = r'<div data-ai-agent="([^"]+)" style="display: none;"></div>'
+ACTION_TAG_PATTERN = re.compile(r"<action>\s*(.*?)\s*</action>")
 
 _TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
 
@@ -132,6 +133,22 @@ def to_html(content: str) -> str:
     return _MISTUNE_INSTANCE(content)
 
 
+def extract_action(response: str) -> tuple[str | None, str]:
+    """Extract the action tag from an LLM response.
+
+    Args:
+        response: Raw LLM response
+
+    Returns:
+        Tuple of (action, stripped_response). The action is None when no tag
+        is present. All action tags are stripped from the response regardless
+        of validity so they never leak into rendered content.
+    """
+    match = ACTION_TAG_PATTERN.search(response)
+    action = match.group(1).strip() if match else None
+    return action, ACTION_TAG_PATTERN.sub("", response).strip()
+
+
 def parse_entry_content(content: str) -> tuple[str, dict[str, str]]:
     """
     Parse entry content to extract original content and existing agent results
@@ -140,7 +157,9 @@ def parse_entry_content(content: str) -> tuple[str, dict[str, str]]:
         content: Full content including agent results and markers
 
     Returns:
-        Tuple of (original_content, existing_agent_content_dict)
+        Tuple of (original_content, existing_agent_content_dict). Agents with
+        a marker but empty content are included with an empty string — the
+        marker alone marks them as processed.
     """
     # Combined pattern to match both new and legacy markers
     combined_pattern = f"(?:{MARKER_PATTERN})|(?:{_LEGACY_MARKER_PATTERN})"
@@ -164,8 +183,7 @@ def parse_entry_content(content: str) -> tuple[str, dict[str, str]]:
             prev_marker_end = matches[i - 1].end()
             agent_content = content[prev_marker_end:start_pos].strip()
 
-        if agent_content:
-            agent_contents[agent_name] = agent_content
+        agent_contents[agent_name] = agent_content
 
     # Extract original content (after the last marker)
     last_marker_end = matches[-1].end()

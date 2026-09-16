@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from string import Template
 
+from common.models import ACTION_DEFINITIONS
+
 
 @dataclass(frozen=True)
 class EntryPromptSchema:
@@ -38,6 +40,40 @@ class EntryPromptSchema:
 
 
 ENTRY_PROMPT_SCHEMA = EntryPromptSchema()
+
+
+@dataclass(frozen=True)
+class ActionPromptSchema:
+    """Action prompt schema — the injected output-protocol block.
+
+    Sent only for agents with allow_actions configured, so the allowed
+    action list (with semantic explanations) is rendered per agent.
+    The decision criteria stay in the user's own prompt.
+    """
+
+    template: str = (
+        "<action_instructions>\n"
+        "Decide per the user's instructions above. The decision is silent:\n"
+        "- take action → append exactly one line at the very end: <action>ACTION</action>\n"
+        "- otherwise → output nothing about the decision\n"
+        "\n"
+        "ACTION must be one of:\n"
+        "$actions\n"
+        "\n"
+        "No reasoning, justification, or commentary on either decision — not before, "
+        "inside, or after the tag.\n"
+        "</action_instructions>"
+    )
+
+    def render(self, allow_actions: list[str]) -> str:
+        """Render the action instruction block with the given allowed actions."""
+        action_lines = "\n".join(
+            f"- {name}: {ACTION_DEFINITIONS[name]}" for name in allow_actions
+        )
+        return Template(self.template).safe_substitute(actions=action_lines)
+
+
+ACTION_PROMPT_SCHEMA = ActionPromptSchema()
 
 
 @dataclass(frozen=True)
