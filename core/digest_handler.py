@@ -1,15 +1,20 @@
+import re
 import time
 import traceback
 from datetime import datetime
 from typing import Any
 
-from common import config
-from common.logger import get_logger
 from feedgen.feed import FeedGenerator
 from miniflux import ClientError
 
-from core.content_helper import to_html
-from core.digest_generator import generate_digest_content, load_digest_content
+from common import config
+from common.logger import get_logger
+from core.content_helper import to_html, to_markdown, truncate_by_tokens
+from core.digest_generator import (
+    DIGEST_HEADING,
+    generate_digest_content,
+    load_digest_content,
+)
 from core.miniflux_client import get_miniflux_client
 
 logger = get_logger(__name__)
@@ -44,7 +49,7 @@ def generate_daily_digest() -> None:
     logger.info("Starting daily digest generation")
 
     try:
-        if generate_digest_content():
+        if generate_digest_content(_load_lookback_digests()):
             _refresh_digest_feed()
             logger.info("Daily digest generation completed successfully")
     except Exception as e:
@@ -175,3 +180,68 @@ def _find_digest_feed_id(feeds: list[dict[str, Any]]) -> int | None:
         if feed.get("feed_url", "") == FEED_URL:
             return feed["id"]
     return None
+
+
+def _load_lookback_digests() -> list[tuple[str, str]]:
+    """
+    Fetch recent digests from the Miniflux digest feed as lookback context
+
+    Pulls the latest entries of the digest feed itself (newest first)
+    and converts their HTML back to markdown. Content-less entries
+    (e.g. the welcome entry) are skipped.
+
+    Returns:
+        List of (label, markdown_content) tuples, newest first, up to
+        config.digest_lookback entries; empty when disabled or unavailable.
+    """
+    lookback = config.digest_lookback
+    if not lookback:
+        return []
+
+    try:
+        feeds = get_miniflux_client().get_feeds()
+        feed_id = _find_digest_feed_id(feeds)
+        if feed_id is None:
+            logger.debug("Digest feed not found in Miniflux, skipping lookback")
+            return []
+
+        result = get_miniflux_client().get_feed_entries(
+            feed_id, direction="desc", limit=lookback + 1
+        )
+        entries = result.get("entries", []) if isinstance(result, dict) else []
+
+        digests: list[tuple[str, str]] = []
+        token_limit = config.digest_lookback_tokens
+        for entry in entries:
+            content = _strip_greeting(to_markdown(entry.get("content", "") or ""))
+            if not content.strip():
+                continue
+            if token_limit:
+                truncated = truncate_by_tokens(content, token_limit)
+                if truncated != content:
+                    content = truncated + "…[truncated]"
+            label = entry.get("published_at") or entry.get("title", "")
+            digests.append((label, content))
+            if len(digests) >= lookback:
+                break
+
+        logger.info(
+            f"Loaded {len(digests)} lookback digests as context"
+        )
+        return digests
+
+    except Exception as e:
+        logger.warning(f"Failed to load lookback digests, continuing without: {e}")
+        return []
+
+
+def _strip_greeting(content: str) -> str:
+    """Drop the greeting essay, keeping everything from the digest body on.
+
+    Falls back to the full content when the marker is absent (e.g. legacy
+    or greeting-only digests).
+    """
+    parts = re.split(
+        rf"(?m)^\s*{re.escape(DIGEST_HEADING)}\s*$", content, maxsplit=1
+    )
+    return parts[-1].strip() if len(parts) > 1 else content

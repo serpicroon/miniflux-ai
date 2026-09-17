@@ -4,8 +4,9 @@ import warnings
 import mistune
 import tiktoken
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
-from common import config
 from markdownify import markdownify as md
+
+from common import config
 
 MARKER = '<a href="#mfai-{0}" id="mfai-{0}"></a>'
 MARKER_PATTERN = r'<a\s+href="#mfai-([^"]+)"\s+id="mfai-[^"]+"[^>]*></a>'
@@ -118,6 +119,25 @@ def to_markdown(content: str) -> str:
         Markdown formatted content
     """
     return md(content)
+
+
+def truncate_by_tokens(content: str, max_tokens: int) -> str:
+    """
+    Truncate content to max_tokens tokens using tiktoken (cl100k_base).
+
+    Returns the content unchanged when already within the limit.
+
+    Args:
+        content: Text content to truncate
+        max_tokens: Maximum number of tokens to keep
+
+    Returns:
+        Truncated content, or the original content if within the limit
+    """
+    tokens = _TIKTOKEN_ENCODER.encode(content, disallowed_special=())
+    if len(tokens) <= max_tokens:
+        return content
+    return _TIKTOKEN_ENCODER.decode(tokens[:max_tokens])
 
 
 def to_html(content: str) -> str:
