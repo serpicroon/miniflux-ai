@@ -190,7 +190,7 @@ agents: {}
         self.assertEqual(config.llm_max_workers, 4)  # Default
         self.assertEqual(config.llm_RPM, 1000)  # Default
         self.assertEqual(config.llm_prompt_processing, "strict")  # Default
-        self.assertEqual(config.digest_lookback, 1)  # Default
+        self.assertEqual(config.digest_lookback, 0)  # Default: disabled
         self.assertEqual(config.digest_lookback_tokens, 6000)  # Default
 
     def test_load_bare_scheduler_section(self):

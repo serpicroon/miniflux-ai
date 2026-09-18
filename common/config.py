@@ -57,7 +57,7 @@ class Config:
         self.digest_entry_url = self._get_config_value("digest", "entry_url", None)
         self.digest_schedule = self._get_config_value("digest", "schedule", None)
         self.digest_prompts = self._get_config_value("digest", "prompts", None)
-        self.digest_lookback = self._get_config_value("digest", "lookback", 1)
+        self.digest_lookback = self._get_config_value("digest", "lookback", 0)
         if (
             not isinstance(self.digest_lookback, int)
             or isinstance(self.digest_lookback, bool)
