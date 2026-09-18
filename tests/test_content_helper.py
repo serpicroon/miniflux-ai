@@ -13,6 +13,7 @@ from core.content_helper import (
     parse_entry_content,
     to_html,
     to_markdown,
+    truncate_by_tokens,
 )
 
 
@@ -648,6 +649,29 @@ class TestIntegration(unittest.TestCase):
         self.assertIn("Bold", result_html)
         self.assertIn("italic", result_html)
         self.assertIn("text", result_html)
+
+
+class TestTruncateByTokens(unittest.TestCase):
+    """Tests for truncate_by_tokens function"""
+
+    def test_within_limit_unchanged(self):
+        """Content within the token limit is returned as-is"""
+        content = "Short content"
+        self.assertEqual(truncate_by_tokens(content, 100), content)
+
+    def test_over_limit_truncated(self):
+        """Content over the token limit is cut to max_tokens tokens"""
+        content = " ".join(f"word{i}" for i in range(100))
+        result = truncate_by_tokens(content, 10)
+        import tiktoken
+
+        encoder = tiktoken.get_encoding("cl100k_base")
+        self.assertLessEqual(len(encoder.encode(result)), 10)
+        self.assertTrue(content.startswith(result))
+
+    def test_empty_content(self):
+        """Empty content stays empty"""
+        self.assertEqual(truncate_by_tokens("", 10), "")
 
 
 if __name__ == "__main__":

@@ -6,16 +6,24 @@ from typing import Any
 
 from common import DIGEST_FILE, SUMMARY_FILE, SUMMARY_FILE_LOCK, config
 from common.logger import get_logger
-
 from core.llm_client import chat_completion
 from core.prompt_schema import DIGEST_PROMPT_SCHEMA
 
 logger = get_logger(__name__)
 
+DIGEST_HEADING = "### 🌐Digest"
 
-def generate_digest_content() -> str | None:
+
+def generate_digest_content(
+    lookback_digests: list[tuple[str, str]] | None = None,
+) -> str | None:
     """
     Generate digest content using LLM based on summaries
+
+    Args:
+        lookback_digests: Previously generated digests as (title, content)
+            tuples as additional context, newest first. Empty or None
+            disables lookback injection.
 
     Returns:
         Generated digest content string
@@ -29,7 +37,7 @@ def generate_digest_content() -> str | None:
         logger.info(f"Loaded {len(summaries)} summaries for digest generation")
 
         greeting = _generate_greeting()
-        summary_digest = _generate_summary(summaries)
+        summary_digest = _generate_summary(summaries, lookback_digests)
 
         digest_content = _build_digest(greeting, summary_digest)
 
@@ -43,7 +51,7 @@ def generate_digest_content() -> str | None:
 
 def _build_digest(greeting: str, summary_digest: str) -> str:
     """Join the non-empty greeting and summary parts with a blank line."""
-    section = f"### 🌐Digest\n\n{summary_digest}" if summary_digest else ""
+    section = f"{DIGEST_HEADING}\n\n{summary_digest}" if summary_digest else ""
     return "\n\n".join(part for part in (greeting, section) if part)
 
 
@@ -75,12 +83,17 @@ def _generate_greeting() -> str:
     return greeting
 
 
-def _generate_summary(summaries: list[dict[str, Any]]) -> str:
+def _generate_summary(
+    summaries: list[dict[str, Any]],
+    lookback_digests: list[tuple[str, str]] | None = None,
+) -> str:
     """
     Generate summary with entry links from LLM-processed summaries
 
     Args:
         summaries: List of summary dictionaries
+        lookback_digests: Previously generated digests as (title, content)
+            tuples, injected as additional context when non-empty
 
     Returns:
         Generated summary content string with entry links,
@@ -98,9 +111,18 @@ def _generate_summary(summaries: list[dict[str, Any]]) -> str:
         ("user", DIGEST_PROMPT_SCHEMA.intro),
         ("user", contents),
         ("user", summary_prompt),
-        ("user", DIGEST_PROMPT_SCHEMA.citation_format),
-        ("user", DIGEST_PROMPT_SCHEMA.citation_verification),
     ]
+    if lookback_digests:
+        logger.debug(f"Injecting {len(lookback_digests)} lookback digests into prompt")
+        prompts.extend(
+            [("user", DIGEST_PROMPT_SCHEMA.render_lookback(lookback_digests))]
+        )
+    prompts.extend(
+        [
+            ("user", DIGEST_PROMPT_SCHEMA.citation_format),
+            ("user", DIGEST_PROMPT_SCHEMA.citation_verification),
+        ]
+    )
 
     summary = chat_completion(prompts, retries=1)
 
