@@ -57,6 +57,28 @@ class Config:
         self.digest_entry_url = self._get_config_value("digest", "entry_url", None)
         self.digest_schedule = self._get_config_value("digest", "schedule", None)
         self.digest_prompts = self._get_config_value("digest", "prompts", None)
+        self.digest_lookback = self._get_config_value("digest", "lookback", 0)
+        if (
+            not isinstance(self.digest_lookback, int)
+            or isinstance(self.digest_lookback, bool)
+            or self.digest_lookback < 0
+        ):
+            raise ValueError(
+                "digest.lookback must be a non-negative integer, "
+                f"got {self.digest_lookback!r}"
+            )
+        self.digest_lookback_tokens = self._get_config_value(
+            "digest", "lookback_tokens", 6000
+        )
+        if (
+            not isinstance(self.digest_lookback_tokens, int)
+            or isinstance(self.digest_lookback_tokens, bool)
+            or self.digest_lookback_tokens < 0
+        ):
+            raise ValueError(
+                "digest.lookback_tokens must be a non-negative integer, "
+                f"got {self.digest_lookback_tokens!r}"
+            )
 
         self.agents = self._load_agents()
 
