@@ -11,6 +11,7 @@ from core.content_helper import (
     extract_action,
     get_content_length,
     parse_entry_content,
+    strip_citations,
     to_html,
     to_markdown,
     truncate_by_tokens,
@@ -672,6 +673,24 @@ class TestTruncateByTokens(unittest.TestCase):
     def test_empty_content(self):
         """Empty content stays empty"""
         self.assertEqual(truncate_by_tokens("", 10), "")
+
+
+class TestStripCitations(unittest.TestCase):
+    def test_sup_blocks_removed_keeping_point_text(self):
+        html = '<h4>Theme</h4><p>Point here<sup><a href="http://x/8">[8]</a></sup></p>'
+        result = strip_citations(html)
+        self.assertIn("Point here", result)
+        self.assertNotIn("[8]", result)
+        self.assertNotIn("http://x/8", result)
+
+    def test_footnote_markers_removed(self):
+        result = strip_citations("<p>Point here[^8] and[^9]</p>")
+        self.assertIn("Point here", result)
+        self.assertNotIn("[^8]", result)
+        self.assertNotIn("[^9]", result)
+
+    def test_plain_text_unchanged(self):
+        self.assertEqual(strip_citations("<p>Just text</p>").strip(), "Just text")
 
 
 if __name__ == "__main__":

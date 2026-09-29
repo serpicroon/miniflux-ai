@@ -106,23 +106,10 @@ def _generate_summary(
         logger.warning("No summary prompt configured, skipping summary generation")
         return ""
 
-    contents = DIGEST_PROMPT_SCHEMA.render([(s["id"], s["content"]) for s in summaries])
-    prompts = [
-        ("user", DIGEST_PROMPT_SCHEMA.intro),
-        ("user", contents),
-        ("user", summary_prompt),
-    ]
+    contents = [(s["id"], s["content"]) for s in summaries]
     if lookback_digests:
         logger.debug(f"Injecting {len(lookback_digests)} lookback digests into prompt")
-        prompts.extend(
-            [("user", DIGEST_PROMPT_SCHEMA.render_lookback(lookback_digests))]
-        )
-    prompts.extend(
-        [
-            ("user", DIGEST_PROMPT_SCHEMA.citation_format),
-            ("user", DIGEST_PROMPT_SCHEMA.citation_verification),
-        ]
-    )
+    prompts = DIGEST_PROMPT_SCHEMA.render_digest(summary_prompt, contents, lookback_digests)
 
     summary = chat_completion(prompts, retries=1)
 

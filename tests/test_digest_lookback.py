@@ -117,6 +117,32 @@ class TestLoadLookbackDigests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertIn("Kept point", result[0][1])
 
+    def test_old_citation_markers_stripped_from_lookback(self):
+        """Sup-links and [^ID] from stored digests never reach the prompt"""
+        entries = [
+            _entry(
+                "Evening Digest for you - 2026-09-08",
+                f"{DIGEST_URL}/2026-09-08-18-00",
+                '<h4>Theme</h4><p>Old point'
+                '<sup><a href="http://old/8">[8]</a></sup> and[^9]</p>',
+            )
+        ]
+        with (
+            patch.object(digest_handler.config, "digest_lookback", 1),
+            patch.object(
+                digest_handler,
+                "get_miniflux_client",
+                return_value=self._client(entries),
+            ),
+        ):
+            result = digest_handler._load_lookback_digests()
+
+        self.assertEqual(len(result), 1)
+        self.assertIn("Old point", result[0][1])
+        self.assertNotIn("[8]", result[0][1])
+        self.assertNotIn("[^9]", result[0][1])
+        self.assertNotIn("http://old/8", result[0][1])
+
     def test_label_falls_back_to_title(self):
         """Entries without published_at are labeled by title"""
         entries = [
@@ -245,8 +271,8 @@ class TestGenerateSummaryLookback(unittest.TestCase):
     def _summaries(self):
         return [{"id": 101, "content": "Entry summary"}]
 
-    def test_lookback_injected_after_summary_prompt(self):
-        """Lookback data is appended after the user summary prompt"""
+    def test_lookback_before_entries(self):
+        """Order: intro, context-wrapped lookback, entries, summary, citation"""
         lookback = [("2026-09-07T18:00:00+08:00", "Old point")]
         with patch.object(
             digest_generator, "chat_completion", return_value="digest"
@@ -255,14 +281,18 @@ class TestGenerateSummaryLookback(unittest.TestCase):
 
         prompts = chat.call_args[0][0]
         roles_contents = [content for _, content in prompts]
-        self.assertEqual(len(prompts), 6)
-        self.assertEqual(roles_contents[2], "Summarize.")
-        self.assertTrue(roles_contents[3].startswith("<lookback>"))
-        self.assertIn("provided as context", roles_contents[3])
-        self.assertIn("Old point", roles_contents[3])
+        self.assertEqual(len(prompts), 5)
+        self.assertTrue(roles_contents[1].startswith("<context>"))
+        self.assertIn("<lookback>", roles_contents[1])
+        self.assertIn("provided as context", roles_contents[1])
+        self.assertIn("Old point", roles_contents[1])
+        self.assertTrue(roles_contents[2].startswith("<entries>"))
+        self.assertIn("sole source of [^ID]", roles_contents[2])
+        self.assertEqual(roles_contents[3], "Summarize.")
+        self.assertTrue(roles_contents[4].startswith("<citation_instruction>"))
 
     def test_no_lookback_no_injection(self):
-        """Empty/None lookback keeps the original 5-message prompt"""
+        """Empty/None lookback keeps the original 4-message prompt"""
         for lookback in (None, []):
             with (
                 self.subTest(lookback=lookback),
@@ -273,7 +303,7 @@ class TestGenerateSummaryLookback(unittest.TestCase):
                 digest_generator._generate_summary(self._summaries(), lookback)
 
             prompts = chat.call_args[0][0]
-            self.assertEqual(len(prompts), 5)
+            self.assertEqual(len(prompts), 4)
             combined = "\n".join(content for _, content in prompts)
             self.assertNotIn("<lookback>", combined)
 
@@ -282,12 +312,13 @@ class TestRenderLookback(unittest.TestCase):
     """Tests for DigestPromptSchema.render_lookback"""
 
     def test_renders_dated_block(self):
-        """Renders intro plus one tagged section per digest in the block"""
+        """Renders context-wrapped intro plus one tagged section per digest"""
         rendered = DIGEST_PROMPT_SCHEMA.render_lookback(
             [("2026-09-07", "First"), ("2026-09-06", "Second")]
         )
-        self.assertTrue(rendered.startswith("<lookback>"))
-        self.assertTrue(rendered.endswith("</lookback>"))
+        self.assertTrue(rendered.startswith("<context>"))
+        self.assertTrue(rendered.endswith("</context>"))
+        self.assertIn("<lookback>", rendered)
         self.assertIn("provided as context", rendered)
         self.assertIn(
             '<lookback_digest date="2026-09-07">\nFirst\n</lookback_digest>',

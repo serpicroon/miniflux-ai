@@ -9,7 +9,7 @@ from miniflux import ClientError
 
 from common import config
 from common.logger import get_logger
-from core.content_helper import to_html, to_markdown, truncate_by_tokens
+from core.content_helper import strip_citations, to_html, truncate_by_tokens
 from core.digest_generator import (
     DIGEST_HEADING,
     generate_digest_content,
@@ -186,9 +186,9 @@ def _load_lookback_digests() -> list[tuple[str, str]]:
     """
     Fetch recent digests from the Miniflux digest feed as lookback context
 
-    Pulls the latest entries of the digest feed itself (newest first)
-    and converts their HTML back to markdown. Content-less entries
-    (e.g. the welcome entry) are skipped.
+    Pulls the latest entries of the digest feed itself (newest first),
+    converts their HTML back to markdown with citation markers removed.
+    Content-less entries (e.g. the welcome entry) are skipped.
 
     Returns:
         List of (label, markdown_content) tuples, newest first, up to
@@ -213,7 +213,7 @@ def _load_lookback_digests() -> list[tuple[str, str]]:
         digests: list[tuple[str, str]] = []
         token_limit = config.digest_lookback_tokens
         for entry in entries:
-            content = _strip_greeting(to_markdown(entry.get("content", "") or ""))
+            content = _extract_digest_body(strip_citations(entry.get("content", "") or ""))
             if not content.strip():
                 continue
             if token_limit:
@@ -235,11 +235,9 @@ def _load_lookback_digests() -> list[tuple[str, str]]:
         return []
 
 
-def _strip_greeting(content: str) -> str:
-    """Drop the greeting essay, keeping everything from the digest body on.
-
-    Falls back to the full content when the marker is absent (e.g. legacy
-    or greeting-only digests).
+def _extract_digest_body(content: str) -> str:
+    """Return the digest body: everything after the heading line,
+    or the whole content when the marker is absent (assumed legacy body).
     """
     parts = re.split(
         rf"(?m)^\s*{re.escape(DIGEST_HEADING)}\s*$", content, maxsplit=1

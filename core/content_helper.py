@@ -140,6 +140,13 @@ def truncate_by_tokens(content: str, max_tokens: int) -> str:
     return _TIKTOKEN_ENCODER.decode(tokens[:max_tokens])
 
 
+def strip_citations(html: str) -> str:
+    soup = BeautifulSoup(html, "lxml")
+    for sup in soup.find_all("sup"):
+        sup.decompose()
+    return re.sub(r"\[\^\d+\]", "", to_markdown(str(soup)))
+
+
 def to_html(content: str) -> str:
     """
     Convert markdown formatted content to HTML format
