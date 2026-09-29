@@ -47,9 +47,8 @@ class TestDuration(unittest.TestCase):
     def test_parse_invalid_format(self):
         """Test that malformed values raise ValueError"""
         for value in ("5", "m", "5mm", "5-", "abc", "1.5h"):
-            with self.subTest(value=value):
-                with self.assertRaises(ValueError):
-                    Duration.parse(value)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                Duration.parse(value)
 
     def test_parse_unsupported_unit(self):
         """Test that unknown units raise ValueError"""
@@ -81,9 +80,8 @@ class TestDuration(unittest.TestCase):
     def test_parse_non_string_rejected(self):
         """Test that non-string values raise ValueError, not AttributeError"""
         for value in (5, 0, True, ["5m"], {"amount": 5}):
-            with self.subTest(value=value):
-                with self.assertRaises(ValueError):
-                    Duration.parse(value)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                Duration.parse(value)
 
     def test_str_roundtrip(self):
         """Test the compact string representation"""
@@ -140,6 +138,8 @@ digest:
   url: http://digest.local
   entry_url: http://entry.local
   schedule: "0 8 * * *"
+  lookback: 2
+  lookback_tokens: 2000
   prompts:
     - test prompt
 agents: {}
@@ -167,6 +167,8 @@ agents: {}
         self.assertEqual(config.digest_url, "http://digest.local")
         self.assertEqual(config.digest_entry_url, "http://entry.local")
         self.assertEqual(config.digest_schedule, "0 8 * * *")
+        self.assertEqual(config.digest_lookback, 2)
+        self.assertEqual(config.digest_lookback_tokens, 2000)
         self.assertEqual(config.digest_prompts, ["test prompt"])
 
     def test_load_default_values(self):
@@ -188,6 +190,8 @@ agents: {}
         self.assertEqual(config.llm_max_workers, 4)  # Default
         self.assertEqual(config.llm_RPM, 1000)  # Default
         self.assertEqual(config.llm_prompt_processing, "strict")  # Default
+        self.assertEqual(config.digest_lookback, 0)  # Default: disabled
+        self.assertEqual(config.digest_lookback_tokens, 6000)  # Default
 
     def test_load_bare_scheduler_section(self):
         """Test that a bare 'scheduler:' key falls back to defaults"""
@@ -216,6 +220,38 @@ llm:
   base_url: http://llm.local
 scheduler:
   entry_limit: {entry_limit}
+agents: {{}}
+"""
+                with self.assertRaises(ValueError):
+                    self._create_config(config_content)
+
+    def test_load_invalid_lookback(self):
+        """Test that non-integer or negative lookback raises ValueError"""
+        for lookback in ("-1", "-5", "unlimited", "1.5", "true"):
+            with self.subTest(lookback=lookback):
+                config_content = f"""
+miniflux:
+  base_url: http://miniflux.local
+llm:
+  base_url: http://llm.local
+digest:
+  lookback: {lookback}
+agents: {{}}
+"""
+                with self.assertRaises(ValueError):
+                    self._create_config(config_content)
+
+    def test_load_invalid_lookback_tokens(self):
+        """Test that non-integer or negative lookback_tokens raises ValueError"""
+        for lookback_tokens in ("-1", "-5", "unlimited", "1.5", "true"):
+            with self.subTest(lookback_tokens=lookback_tokens):
+                config_content = f"""
+miniflux:
+  base_url: http://miniflux.local
+llm:
+  base_url: http://llm.local
+digest:
+  lookback_tokens: {lookback_tokens}
 agents: {{}}
 """
                 with self.assertRaises(ValueError):

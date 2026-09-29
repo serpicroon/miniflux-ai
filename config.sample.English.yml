@@ -46,6 +46,14 @@ digest:
     - "07:30"  # Morning
     - "18:00"  # Evening
     - "22:00"  # Night
+
+  # Number of previously generated digests pulled back from Miniflux
+  # as lookback context (0 = disabled)
+  lookback: 1
+
+  # Max tokens kept per lookback issue before truncation (0 = unlimited).
+  # Raise this if your digests are long and get cut off.
+  lookback_tokens: 6000
   prompts:
     greeting: |-
       According to the current date and 24-hour time, generate a friendly and warm greeting. Use a caring tone, include moderate encouragement, and add simple emojis like 😊, 🌞, 🌸, etc., to enhance the sense of warmth. Example: 'Good morning! May you be full of energy today and welcome a wonderful day! 🌞😊'. Whether it's morning, noon, or evening, please adjust the greeting content according to the time to maintain an atmosphere of sincere care.
@@ -58,6 +66,8 @@ digest:
          - Each point no longer than 30 words.
          - Order by quality: news/official sources first, expert analysis, then community posts.
          - Content must be faithful to the original summaries.
+      3. Lookback: if a <lookback> section is present, do not repeat
+         anything it already contains.
 
       Structure:
       - Use `####` for theme titles, `-` for key points.
