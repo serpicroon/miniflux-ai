@@ -284,7 +284,6 @@ class TestGenerateSummaryLookback(unittest.TestCase):
         self.assertEqual(len(prompts), 5)
         self.assertTrue(roles_contents[1].startswith("<context>"))
         self.assertIn("<lookback>", roles_contents[1])
-        self.assertIn("provided as context", roles_contents[1])
         self.assertIn("Old point", roles_contents[1])
         self.assertTrue(roles_contents[2].startswith("<entries>"))
         self.assertIn("sole source of [^ID]", roles_contents[2])
@@ -312,14 +311,14 @@ class TestRenderLookback(unittest.TestCase):
     """Tests for DigestPromptSchema.render_lookback"""
 
     def test_renders_dated_block(self):
-        """Renders context-wrapped intro plus one tagged section per digest"""
+        """Renders context-wrapped tagged sections, one per digest"""
         rendered = DIGEST_PROMPT_SCHEMA.render_lookback(
             [("2026-09-07", "First"), ("2026-09-06", "Second")]
         )
         self.assertTrue(rendered.startswith("<context>"))
         self.assertTrue(rendered.endswith("</context>"))
         self.assertIn("<lookback>", rendered)
-        self.assertIn("provided as context", rendered)
+        self.assertIn("Previous digests:", rendered)
         self.assertIn(
             '<lookback_digest date="2026-09-07">\nFirst\n</lookback_digest>',
             rendered,
