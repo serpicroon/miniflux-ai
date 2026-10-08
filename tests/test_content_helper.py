@@ -11,8 +11,10 @@ from core.content_helper import (
     extract_action,
     get_content_length,
     parse_entry_content,
+    strip_citations,
     to_html,
     to_markdown,
+    truncate_by_tokens,
 )
 
 
@@ -648,6 +650,47 @@ class TestIntegration(unittest.TestCase):
         self.assertIn("Bold", result_html)
         self.assertIn("italic", result_html)
         self.assertIn("text", result_html)
+
+
+class TestTruncateByTokens(unittest.TestCase):
+    """Tests for truncate_by_tokens function"""
+
+    def test_within_limit_unchanged(self):
+        """Content within the token limit is returned as-is"""
+        content = "Short content"
+        self.assertEqual(truncate_by_tokens(content, 100), content)
+
+    def test_over_limit_truncated(self):
+        """Content over the token limit is cut to max_tokens tokens"""
+        content = " ".join(f"word{i}" for i in range(100))
+        result = truncate_by_tokens(content, 10)
+        import tiktoken
+
+        encoder = tiktoken.get_encoding("cl100k_base")
+        self.assertLessEqual(len(encoder.encode(result)), 10)
+        self.assertTrue(content.startswith(result))
+
+    def test_empty_content(self):
+        """Empty content stays empty"""
+        self.assertEqual(truncate_by_tokens("", 10), "")
+
+
+class TestStripCitations(unittest.TestCase):
+    def test_sup_blocks_removed_keeping_point_text(self):
+        html = '<h4>Theme</h4><p>Point here<sup><a href="http://x/8">[8]</a></sup></p>'
+        result = strip_citations(html)
+        self.assertIn("Point here", result)
+        self.assertNotIn("[8]", result)
+        self.assertNotIn("http://x/8", result)
+
+    def test_footnote_markers_removed(self):
+        result = strip_citations("<p>Point here[^8] and[^9]</p>")
+        self.assertIn("Point here", result)
+        self.assertNotIn("[^8]", result)
+        self.assertNotIn("[^9]", result)
+
+    def test_plain_text_unchanged(self):
+        self.assertEqual(strip_citations("<p>Just text</p>").strip(), "Just text")
 
 
 if __name__ == "__main__":
