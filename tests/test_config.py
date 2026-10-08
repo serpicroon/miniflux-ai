@@ -225,6 +225,19 @@ agents: {{}}
                 with self.assertRaises(ValueError):
                     self._create_config(config_content)
 
+    def test_load_invalid_prompt_processing(self):
+        """Test that an unknown prompt_processing mode raises ValueError"""
+        config_content = """
+miniflux:
+  base_url: http://miniflux.local
+llm:
+  base_url: http://llm.local
+  prompt_processing: merge
+agents: {}
+"""
+        with self.assertRaises(ValueError):
+            self._create_config(config_content)
+
     def test_load_invalid_lookback(self):
         """Test that non-integer or negative lookback raises ValueError"""
         for lookback in ("-1", "-5", "unlimited", "1.5", "true"):

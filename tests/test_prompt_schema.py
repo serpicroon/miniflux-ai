@@ -4,7 +4,11 @@ Unit tests for core.prompt_schema module using unittest
 
 import unittest
 
-from core.prompt_schema import ACTION_PROMPT_SCHEMA, ENTRY_PROMPT_SCHEMA
+from core.prompt_schema import (
+    ACTION_PROMPT_SCHEMA,
+    ENTRY_PROMPT_SCHEMA,
+    apply_prompt_processing,
+)
 
 
 class TestEntryPromptSchema(unittest.TestCase):
@@ -56,6 +60,13 @@ class TestActionPromptSchema(unittest.TestCase):
         rendered = ACTION_PROMPT_SCHEMA.render(["read"])
 
         self.assertIn("otherwise → output nothing about the decision", rendered)
+
+
+class TestApplyPromptProcessing(unittest.TestCase):
+    def test_unknown_mode_raises(self):
+        with self.assertRaises(ValueError) as ctx:
+            apply_prompt_processing([("user", "x")], "merge")
+        self.assertIn("strict", str(ctx.exception))
 
 
 if __name__ == "__main__":

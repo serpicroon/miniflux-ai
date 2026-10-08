@@ -15,6 +15,9 @@ ACTION_DEFINITIONS = {
     "save": "send the entry to configured third-party services",
 }
 
+# How ordered prompt blocks are turned into API messages.
+PROMPT_PROCESSING_MODES = ("none", "strict", "single")
+
 
 @dataclass(frozen=True)
 class Duration:

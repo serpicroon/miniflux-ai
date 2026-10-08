@@ -2,7 +2,12 @@ import sys
 
 from yaml import safe_load
 
-from common.models import ACTION_DEFINITIONS, Agent, Duration
+from common.models import (
+    ACTION_DEFINITIONS,
+    PROMPT_PROCESSING_MODES,
+    Agent,
+    Duration,
+)
 
 # Units permitted for each scheduler duration field.
 SCHEDULER_INTERVAL_UNITS = ("m", "h")
@@ -31,6 +36,11 @@ class Config:
         self.llm_prompt_processing = self._get_config_value(
             "llm", "prompt_processing", "strict"
         )
+        if self.llm_prompt_processing not in PROMPT_PROCESSING_MODES:
+            raise ValueError(
+                "llm.prompt_processing must be one of "
+                f"{PROMPT_PROCESSING_MODES}, got {self.llm_prompt_processing!r}"
+            )
 
         scheduler = self.c.get("scheduler", {}) or {}
         self.scheduler_interval = Duration.parse(
